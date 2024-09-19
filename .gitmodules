@@ -1,0 +1,3 @@
+[submodule "shoppe-v2"]
+	path = shoppe-v2
+	url = git@github.com:HoangPC98/shoppe-v2.git
