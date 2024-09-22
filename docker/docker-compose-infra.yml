@@ -1,16 +1,17 @@
 
-
 version: '3.8'
 services:
-  customer-db:
-    image: postgres:14.1-alpine
-    restart: always
-    env_file:
-      - ../.env
+  postgresdb:
+    image: postgres
+    restart: unless-stopped
+    env_file: ../.env
+    # environment:
+    #   - POSTGRES_USER=$POSTGRESDB_USER
+    #   - POSTGRES_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
+    #   - POSTGRES_DB=$POSTGRESDB_DATABASE
     ports:
       - 5432:5432
-    volumes: 
-      - db:/var/lib/postgresql/data
+    volumes:
+      - db:/var/lib/postgres
 volumes:
   db:
-    driver: local
