@@ -1,17 +1,24 @@
 
 version: '3.8'
 services:
-  postgresdb:
+  customer_postgres:
     image: postgres
     restart: unless-stopped
     env_file: ../.env
-    # environment:
-    #   - POSTGRES_USER=$POSTGRESDB_USER
-    #   - POSTGRES_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
-    #   - POSTGRES_DB=$POSTGRESDB_DATABASE
     ports:
       - 5432:5432
     volumes:
-      - db:/var/lib/postgres
+      - postgres:/var/lib/postgresql
+  redis-customer:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6378:6378"
+    volumes:
+      - redis:/data
 volumes:
-  db:
+  postgres:
+    driver: local
+  redis:
+    driver: local
+

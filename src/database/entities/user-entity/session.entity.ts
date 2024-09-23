@@ -1,9 +1,9 @@
 import { Column, Entity } from "typeorm";
 import { DeviceInfo } from "src/common/types/device.type";
-import { IBaseOnlyCreateEntity } from "../base/ibases-only-created";
+import { IBaseWithIdEntity } from "../base/ibase-with-id.entity";
 
 @Entity()
-export class Session extends IBaseOnlyCreateEntity {
+export class Session extends IBaseWithIdEntity {
     @Column()
     uid: number;
 
@@ -16,12 +16,12 @@ export class Session extends IBaseOnlyCreateEntity {
     @Column()
     device_id: string;
 
-    @Column({ type: 'string' })
+    @Column({ type: 'varchar' })
     device_info: DeviceInfo;
 
-    @Column({ type: 'string' })
+    @Column({ type: 'varchar' })
     ip_address: DeviceInfo;
 
-    @Column({ type: 'string' })
+    @Column({ type: 'varchar' })
     last_used_at: Date;
 }
