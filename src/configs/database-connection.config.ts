@@ -7,7 +7,7 @@ export const customerDatabaseConfig: PostgresConnectionOptions = {
     host: process.env.POSTGRES_HOST,
     port: Number(process.env.POSTGRES_PORT),
     username: process.env.POSTGRES_USER,
-    password: 'hoangpc',
+    password: process.env.POSTGRES_PASSWORD,
     database: process.env.POSTGRES_DB,
     entities: [],
     synchronize: false,
@@ -17,7 +17,7 @@ export const customerDatabaseConfig: PostgresConnectionOptions = {
     //     options: {
     //         host: process.env.REDIS_HOST,
     //         port: Number(process.env.REDIS_PORT),
-    //         password: process.env.REDIS_PASSWORD,
+    //         password: process.env.REDIS_PASSWORD,  
     //     },
     // },
 }

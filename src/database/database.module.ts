@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { customerDatabaseConfig } from "src/configs/pg-connection.config";
-import { DataSource } from "typeorm";
+import { customerDatabaseConfig } from "src/configs/database-connection.config";
 
 @Module({
     imports: [
