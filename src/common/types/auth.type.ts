@@ -6,3 +6,8 @@ export type SessionCachePL = {
     lastUsedAt: string;
     deviceInfo?: string;
 }
+
+export type ClientTokens = {
+    accessToken: string;
+    refreshToken: string;
+}

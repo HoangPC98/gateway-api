@@ -4,23 +4,21 @@ import { JwtSignOptions } from '@nestjs/jwt/dist/interfaces';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from 'class-transformer';
 import * as dotenv from 'dotenv';
-import { AuthException, AuthType, Customer, DB_BOOLEAN_VALUE, EntityType, TOKEN_TYPE } from 'libs/common/src';
-import {
-    CacheProvider,
-    CustomerDetailDto,
-    CustomerRepository,
-    ILoggerService,
-    NotificationRepository,
-} from 'libs/modules/src';
 import * as ms from 'ms';
 import { v4 as uuidv4 } from 'uuid';
 
 
-import { CustomerAuthPayloadInterface, RefreshTokenPayload } from './interfaces/auth-payload.interface';
 import { AppConfigService } from 'src/configs/app.config.service';
 import { MyCacheService } from 'src/infra-mudules/cache/cache.service';
 import { SignUpReq } from './dto/login.dto';
 import { User } from 'src/database/entities/user-entity/user.entity';
+import { OtpService } from './otp.service';
+import { OtpException } from 'src/common/exeptions/otp.exception';
+import { UserException } from 'src/common/exeptions/user.exeption';
+import { UserType } from 'src/common/enums/index.enum';
+import { LoggerService } from 'src/common/logger/service';
+import { UserRepository } from 'src/repositories/user.repository';
+import { UserSettingRepository } from 'src/repositories/user-setting.repository';
 
 dotenv.config();
 
@@ -33,13 +31,14 @@ export class AuthService {
     private isLowSecureForTesting: boolean = true;
 
     constructor(
-        private readonly customerRepository: CustomerRepository,
+        private readonly userRepo: UserRepository,
+        private readonly userSettingRepo: UserSettingRepository,
+
         private readonly jwtService: JwtService,
         private readonly appConfigService: AppConfigService,
-        private readonly cacheProvider: CacheProvider,
         private readonly cacheService: MyCacheService,
-        private readonly logger: ILoggerService,
-        private notificationRepository: NotificationRepository,
+        private readonly logService: LoggerService,
+        private readonly otpService: OtpService
     ) {
         this.jwtAccessTokenOption = this.appConfigService.accessTokenOption;
         this.jwtRefreshTokenOption = this.appConfigService.refreshTokenOption;
@@ -47,69 +46,59 @@ export class AuthService {
         this.isLowSecureForTesting =
             (process.env.LOW_SECURE_FOR_TESTING && (process.env.LOW_SECURE_FOR_TESTING).toString() == 'true') ? true : false;
     }
-    async signUp(signUpDto: SignUpReq){
+    async signUp(signUpDto: SignUpReq) {
         let newUser: User;
-        const checkCustomer = await this.customerRepository.findAnyByPhoneNumber(signUpDto.phoneNumber, 'withDeleted');
-        if (checkCustomer) {
-            if (checkCustomer.isDeleted())
-                checkCustomer.deletedAt = null;
+        const checkUser = await this.userRepo.getActiveByPhoneNumber(signUpDto.phoneNumber);
+        if (checkUser) {
+            if (checkUser.isDeleted())
+                checkUser.deletedAt = null;
             else
-                // throw CustomerException.phoneExisted();
+                throw UserException.phoneExisted();
         }
-            let { phoneNumber, otpCode, trackingId } = signUpDto as signUpDto;
-            const checkOtp = await this.otpProvider.validate(phoneNumber, otpCode, trackingId);
-            if (!checkOtp) {
-                throw OtpException.otpInvalid();
+        let { phoneNumber, otp, sessionId } = signUpDto;
+        const checkOtp = await this.otpService.validate(phoneNumber, otp, sessionId);
+        if (!checkOtp) {
+            throw OtpException.otpInvalid();
+        }
+        newUser = plainToInstance(User, signUpDto);
+
+
+        const user: User = checkUser ? checkUser : (await this.userRepo.save(newUser));
+        user.type = UserType.PERSONAL;
+
+        this.logService.info({
+            message: `Created User: ${user.phoneNumber}`,
+            obj: { user }
+        });
+
+
+        await this.userSettingRepo.setDefaultSetting(user.id),
+    }
+
+    async refreshToken(user: User, currentDeviceId: string): Promise<RefreshTokenResponse> {
+        const cacheKey = this.cacheProvider.getRefreshTokenCacheKey(customer.id);
+        const tokenHashed = await this.cacheProvider.get(cacheKey);
+        if (tokenHashed === null) {
+            throw new UnauthorizedException();
+        }
+        if (typeof tokenHashed === 'string') {
+            const verified = await bcrypt.compare(customer.jwtId, tokenHashed);
+            if (!verified) {
+                throw new UnauthorizedException();
             }
-            newCust = plainToInstance(Customer, signUpDto);
         }
-        else if (inCtxEnterpriseInit || signUpDto instanceof CreateCustomerEnterpriseDto) {
-            newCust = plainToInstance(CreateCustomerEnterpriseDto, {
-                ...signUpDto,
-                gender: 0,
-                password: null,
-                active: 1,
-            })
-
-        }
-
-        let customer: Customer = checkCustomer ? checkCustomer : (await this.customerRepository.save(newCust));
-        customer.type = signUpDto.type || CustomerType.PERSONAL;
-        customer.isNotification = DB_BOOLEAN_VALUE.FALSE;
-        let custBalance: Balance = this.balanceRepo.create({
-            customerId: customer.id,
-            type: BalanceType.NORMAL,
-            freezedMoney: 0,
-            availableMoney: 0,
-        });
-        customer.balances = [custBalance];
-
-        this.loggerService.info({
-            message: `Create customer, Customer: ${customer.phoneNumber}`,
-            obj: {
-                customer,
-                deviceId,
-            },
-            context: 'CustomerService.create',
-        });
-        if (request)
-            customer.device = await this.customerDeviceService.upsertDevice(customer, deviceId, request);
-
-        await Promise.all([
-            this.securitySettingService.setDefaultSetting(customer),
-            this.appMetricService.saveAppMetricsAccount(
-                AppMetricType.ACCOUNT_METRIC,
-                AppMetricsEnum.TOTAL_ACCOUNT_REGISTER,
-            ),
-            this.appMetricService.saveAppMetricsAccount(
-                AppMetricType.ACCOUNT_METRIC,
-                AppMetricsEnum.TOTAL_PERSONAL_ACCOUNT,
-            ),
-            this.balanceRepo.save(custBalance)
-        ]);
-
-        return inCtxEnterpriseInit
-            ? { customerIdForEnterpriseInit: customer.id }
-            : this.getResponse(customer, deviceId);
+        const accessTokenId = uuidv4();
+        const payload = {
+            userId: customer.id,
+            entity: EntityType.CUSTOMER,
+            jwtId: accessTokenId,
+            deviceId: currentDeviceId,
+        };
+        const token = await this.generateClientAccessToken(payload);
+        const refreshToken = await this.generateClientRefreshToken(payload);
+        return {
+            accessToken: token,
+            refreshToken,
+        };
     }
 }

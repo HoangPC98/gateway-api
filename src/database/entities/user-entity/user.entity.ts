@@ -15,8 +15,8 @@ export class User extends IBaseWithIdEntity {
     @Column()
     avatar: string;
 
-    @Column()
-    phone_number: string;
+    @Column({name: 'phone_number'})
+    phoneNumber: string;
 
     @Column()
     email: string;

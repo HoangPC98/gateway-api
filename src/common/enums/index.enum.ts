@@ -12,3 +12,8 @@ export enum SourceId {
     EMAIL = 'EMAIL',
     PHONE = 'PHONE_NUMBER'
 }
+
+export enum OrderBy {
+    ASC = 'ASC',
+    DESC = 'DESC',
+}

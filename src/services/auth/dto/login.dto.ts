@@ -13,24 +13,32 @@ export class LoginByUsrPwsdReq {
     password: string;
 }
 
+export class LoginResp {
+   accessToken: string;
+   refreshToken: string;
+}
+
+
 export class SignUpReq {
     @IsOptional()
-    @ApiProperty({
-        example: '0987654321',
-    })
+    @ApiProperty()
     phoneNumber: string;
 
     @IsOptional()
-    @ApiProperty({
-        example: 'abc123@gmail.com',
-    })
+    @ApiProperty()
     email: string;
 
     @IsNotEmpty()
-    @ApiProperty({
-        example: '123456',
-    })
+    @ApiProperty()
     password: string;
+
+    @IsNotEmpty()
+    @ApiProperty()
+    otp: string;
+
+    @IsNotEmpty()
+    @ApiProperty()
+    sessionId: string;
 
     @IsOptional()
     typeUid: string = UserType.PERSONAL;

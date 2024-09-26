@@ -2,7 +2,7 @@ import { Column, Entity } from "typeorm";
 import { IBaseWithIdEntity } from "../base/ibase-with-id.entity";
 
 @Entity()
-export class UserProfile extends IBaseWithIdEntity {
+export class Profile extends IBaseWithIdEntity {
     @Column()
     type: string;
 
