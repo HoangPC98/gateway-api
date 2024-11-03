@@ -1,1 +1,1 @@
-export const PUBLIC_API = 'PUBLIC_API'
+export const PUBLIC_API = 'PUBLIC_API';

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtSignOptions } from '@nestjs/jwt/dist/interfaces';
 import * as bcrypt from 'bcrypt';
@@ -8,39 +8,47 @@ import * as dotenv from 'dotenv';
 import * as ms from 'ms';
 import { v4 as uuidv4 } from 'uuid';
 
-
-import { CustomerAuthPayloadInterface, RefreshTokenPayload } from './interfaces/auth-payload.interface';
-import { AppConfigService } from 'src/configs/app.config.service';
-import { MyCacheService } from 'src/infra-mudules/cache/cache.service';
-import { SignUpReq } from './dto/login.dto';
-import { User } from 'src/database/entities/user-entity/user.entity';
+import { LoginByUsrPwdReq, SignUpByUsrReq, SignUpReq } from './dto/login.dto';
+import { User } from 'src/entities/user-entity/user.entity';
 import { UserRepository } from 'src/database/repositories/user.repository';
-import { CacheProvider } from 'src/infra-mudules/cache/cache.provider';
+import { CacheProvider } from 'src/providers/cache/cache.provider';
 import { ILoggerService } from 'src/common/logger/adapter';
+import { UserAuthJwtDto } from './dto/token.dto';
+import { AuthBaseService } from './auth.base.service';
+import { IGetTokenResp } from 'src/common/interfaces/auth.interface';
+import { ErrorMessage } from 'src/common/enums/error.enum';
 
 dotenv.config();
 
 @Injectable()
-export class AuthService {
-    private readonly jwtAccessTokenOption: JwtSignOptions = {};
-    private readonly jwtRefreshTokenOption: JwtSignOptions = {};
-    private readonly jwtRefreshTokenHashKey: string;
-    private readonly jwtRefreshTokenLifeTime: number;
-    private isLowSecureForTesting: boolean = true;
+export class AuthService extends AuthBaseService {
+  async loginByUsr(usr: string, password: string): Promise<IGetTokenResp> {
+    const user = await this.userRepo.findOneBy({ usr });
+    await this.handleLoginCredit(user, password);
+    return await this.getClientTokens(user);
+  }
 
-    constructor(
-        private readonly userRepo: UserRepository,
-        private readonly jwtService: JwtService,
-        private readonly appConfigService: AppConfigService,
-        private readonly cacheProvider: CacheProvider,
-        private readonly cacheService: MyCacheService,
-        private readonly logger: ILoggerService,
-    ) {
-        this.jwtAccessTokenOption = this.appConfigService.accessTokenOption;
-        this.jwtRefreshTokenOption = this.appConfigService.refreshTokenOption;
-        this.jwtRefreshTokenLifeTime = ms(this.jwtRefreshTokenOption.expiresIn);
-        this.isLowSecureForTesting =
-            (process.env.LOW_SECURE_FOR_TESTING && (process.env.LOW_SECURE_FOR_TESTING).toString() == 'true') ? true : false;
+  async signUpByUsr(dto: SignUpReq) {
+    const user = await this.userRepo.findOneBy({ usr: dto.phoneOrEmail });
+    await this.checkPhoneOrEmail(dto.phoneOrEmail, 1);
+    const newUser = this.userRepo.create({
+      usr: dto.phoneOrEmail,
+      password: dto.password,
+    });
+    return await this.getClientTokens(user);
+  }
+
+  async logout(user: UserAuthJwtDto) {}
+
+  async checkPhoneOrEmail(usr: string, forSignUp: any): Promise<any> {
+    const userByUsr = await this.userRepo.findOneBy({ usr });
+    if (userByUsr) {
+      if (forSignUp) throw new BadRequestException(ErrorMessage.USR_IS_EXISTED);
     }
-    
+    return {
+      isSignUp: false,
+      isLock: false,
+      loginNewDevice: false,
+    };
+  }
 }

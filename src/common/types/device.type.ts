@@ -1,5 +1,5 @@
 export type DeviceInfo = {
-    platform: string;
-    name: string;
-    os_version: string;
-}
+  platform: string;
+  name: string;
+  os_version: string;
+};

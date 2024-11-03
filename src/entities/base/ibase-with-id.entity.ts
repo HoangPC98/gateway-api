@@ -2,7 +2,6 @@ import { CreateDateColumn, DeleteDateColumn, PrimaryGeneratedColumn, UpdateDateC
 import { IBaseEntity } from './ibases.entity';
 
 export class IBaseWithIdEntity extends IBaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 }
-

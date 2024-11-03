@@ -1,19 +1,18 @@
 import { HttpException } from '@nestjs/common';
-import { ApiException } from 'libs/common/src/exceptions/api.excetion';
 
 export type MessageType = {
-    /**
-     * message to be logged
-     */
-    message?: string;
-    /**
-     * method or class that accour message
-     */
-    context?: string;
-    /**
-     * addtional object to log
-     */
-    obj?: object;
+  /**
+   * message to be logged
+   */
+  message?: string;
+  /**
+   * method or class that accour message
+   */
+  context?: string;
+  /**
+   * addtional object to log
+   */
+  obj?: object;
 };
 
-export type ErrorType = HttpException | ApiException;
+export type ErrorType = HttpException;

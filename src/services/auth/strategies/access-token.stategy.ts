@@ -1,36 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import * as dotenv from 'dotenv';
-import { AppConfigService } from 'libs/app-config/src';
-import { EntityType, TOKEN_TYPE } from 'libs/common/src';
-import { CustomerDetailDto } from 'libs/modules/src';
+
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import { AuthService } from '@/modules/auth/auth.service';
-import { UserAuthPayloadInterface } from 'src/common/interfaces/auth.interface';
+import { AuthService } from '../auth.service';
+import { AppConfigService } from 'src/configs/app.config.service';
+import { IUserAuthPayload } from 'src/common/interfaces/auth.interface';
+import { User } from 'src/entities/user-entity/user.entity';
+import { TOKEN_TYPE } from 'src/common/enums/index.enum';
 
 dotenv.config();
 
 @Injectable()
 export class AccessTokenStrategy extends PassportStrategy(Strategy, TOKEN_TYPE.ACCESS_TOKEN) {
-    constructor(private readonly authService: AuthService, private configService: AppConfigService) {
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKey: configService.jwtClientSecretKey,
-        });
-    }
+  constructor(
+    private readonly authService: AuthService,
+    private configService: AppConfigService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.jwtAccessTokenSecret,
+    });
+  }
 
-    async validate(payload: UserAuthPayloadInterface): Promise<CustomerDetailDto> {
-        const { userId, entity, jwtId, deviceId }: UserAuthPayloadInterface = payload;
-        let user = null;
-        if (entity === EntityType.CUSTOMER) {
-            user = await this.authService.validateToken(userId, jwtId, deviceId);
-        }
-        if (user !== null) {
-            user.jwtId = jwtId;
-            user.deviceId = deviceId;
-        }
-        return user;
+  async validate(payload: IUserAuthPayload): Promise<User> {
+    const { userId, entity, jwtId }: IUserAuthPayload = payload;
+    let user = null;
+    if (user !== null) {
+      user.jwtId = jwtId;
     }
+    return user;
+  }
 }
