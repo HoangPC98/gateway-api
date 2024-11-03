@@ -13,17 +13,17 @@ export const customerDatabaseConfig: PostgresConnectionOptions = {
   // entities: ['src/database/entities/user-entity/*{.ts,.js}'],
   entities: ['dist/entities/user-entity/*.entity.js'],
   synchronize: false,
-  logging: true,
+  logging: process.env.DATABASE_LOGGING ? true : false,
   // migrationsRun: true,
   migrations: ['dist/database/migrations/*{.ts,.js}'],
-  // cache: {
-  //     type: 'redis',
-  //     options: {
-  //         host: process.env.REDIS_HOST,
-  //         port: Number(process.env.REDIS_PORT),
-  //         password: process.env.REDIS_PASSWORD,
-  //     },
-  // },
+  cache: {
+      type: 'redis',
+      options: {
+          host: process.env.REDIS_HOST,
+          port: Number(process.env.REDIS_PORT),
+          password: process.env.REDIS_PASSWORD,
+      },
+  },
 };
 
 export default new DataSource({

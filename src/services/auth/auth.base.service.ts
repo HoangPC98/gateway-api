@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtSignOptions } from '@nestjs/jwt/dist/interfaces';
 import * as bcrypt from 'bcrypt';
@@ -8,7 +8,7 @@ import * as ms from 'ms';
 import { v4 as uuidv4 } from 'uuid';
 
 import { AppConfigService } from 'src/configs/app.config.service';
-import { UserRepository } from 'src/database/repositories/user.repository';
+import { UsersRepository } from 'src/database/repositories/user.repository';
 import { UserAuthJwtDto } from './dto/token.dto';
 import { User } from 'src/entities/user-entity/user.entity';
 import { ErrorMessage } from 'src/common/enums/error.enum';
@@ -20,6 +20,7 @@ import { UserAuthJwtPayload } from 'src/common/types/auth.type';
 import { BOOLEAN_VALUE } from 'src/common/enums/index.enum';
 import { IGetTokenResp } from 'src/common/interfaces/auth.interface';
 
+
 dotenv.config();
 
 @Injectable()
@@ -30,10 +31,10 @@ export class AuthBaseService {
   private readonly jwtRefreshTokenLifeTime: number;
   private isLowSecureForTesting: boolean = true;
   private readonly maxWrongPasswordAttempts = 5;
-  private readonly tempLockDuration = 30 * 60;
+  private readonly tempLockDuration = 30 * 60 * 1000;
 
   constructor(
-    public readonly userRepo: UserRepository,
+    public readonly userRepository: UsersRepository,
     public readonly jwtService: JwtService,
     public readonly appConfigService: AppConfigService,
     public readonly cacheProvider: CacheProvider,
@@ -48,14 +49,15 @@ export class AuthBaseService {
 
   public async handleLoginCredit(user: User, password: string) {
     const passwordMatch = await bcrypt.compare(password, user.password);
-    const isTempLocked = user.state.isTempLock == true;
-    const isLocked = user.state.isLock == true;
+    const isTempLocked = user.state?.isTempLock == true || false;
+    const isLocked = user.state?.isLock == true || false;
     const ckey = `${WRONG_PASSWORD_COUNT}${user.id}`;
     if (isLocked || user.isDeleted()) {
       throw new ForbiddenException(ErrorMessage.USER_IS_TEMP_LOCK);
     }
 
     if (isTempLocked) {
+      throw new ForbiddenException(ErrorMessage.USER_IS_TEMP_LOCK);
     }
     if (!passwordMatch) {
       let currentCount = +(await this.cacheProvider.get(ckey));
@@ -67,13 +69,26 @@ export class AuthBaseService {
       if (remainingCount <= 0) {
         if (isTempLocked) {
           reasonLock = EUserReasonLockType.WRONG_PASSWORD_TO_MUCH;
-          await this.userRepo.update(user.id, {
+          await this.userRepository.userRp.update(user.id, {
             state: {
-              lockedAt: new Date(),
+
               reasonLockType: EUserReasonLockType.WRONG_PASSWORD_TO_MUCH,
             },
           });
-          throw new ForbiddenException(ErrorMessage.USER_IS_TEMP_LOCK);
+          throw new ForbiddenException(reasonLock);
+        }
+        else {
+          reasonLock = ErrorMessage.USER_IS_TEMP_LOCK;
+          await this.cacheProvider.del(ckey);
+          await this.userRepository.userRp.update(user.id, {
+            state: {
+              isTempLock: true,
+              lockAt: new Date(),
+              reasonLockType: EUserReasonLockType.WRONG_PASSWORD_TO_MUCH,
+              reasonLockDesc: reasonLock
+            }
+          });
+          throw new ForbiddenException(reasonLock);
         }
       } else {
         await this.cacheProvider.set(ckey, currentCount + 1, this.tempLockDuration);
@@ -99,6 +114,11 @@ export class AuthBaseService {
     const accessToken = this.jwtService.sign(accessTokenPayload, this.jwtAccessTokenOption);
     const refreshToken = this.jwtService.sign(refreshTokenPayload, this.jwtRefreshTokenOption);
     return { accessToken, refreshToken };
+  }
+
+  setPasswordHash(plainPassword: string): string {
+    const salt: string = bcrypt.genSaltSync();
+    return bcrypt.hashSync(plainPassword, salt);
   }
 
   // async generateClientRefreshToken(payload: RefreshTokenPayload): Promise<string> {

@@ -6,14 +6,15 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { OtpProvider } from 'src/providers/otp/otp.provider';
 import { AccessTokenStrategy } from './strategies/access-token.stategy';
-import { UserRepository } from 'src/database/repositories/user.repository';
+import { UsersRepository } from 'src/database/repositories/user.repository';
 import { AppConfigService } from 'src/configs/app.config.service';
 import { CacheProvider } from 'src/providers/cache/cache.provider';
 import { AuthBaseService } from './auth.base.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entities/user-entity/user.entity';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { MyCacheModule } from 'src/providers/cache/cache.module';
+import { UserProfile } from 'src/entities/user-entity/user_profile.entity';
+import { DatabaseModule } from 'src/database/database.module';
 
 dotenv.config();
 
@@ -25,10 +26,10 @@ dotenv.config();
         expiresIn: `${process.env.JWT_CLIENT_TOKEN_EXPIRED}`,
       },
     }),
-    TypeOrmModule.forFeature([User]),
     MyCacheModule,
+    DatabaseModule
   ],
-  providers: [AuthService, AuthBaseService, AccessTokenStrategy, UserRepository, AppConfigService],
+  providers: [AuthService, AuthBaseService, AccessTokenStrategy, UsersRepository, AppConfigService],
   controllers: [AuthController],
   exports: [AuthService, AccessTokenStrategy],
 })

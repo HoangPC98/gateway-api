@@ -7,6 +7,9 @@ import { ILoggerService } from './common/logger/adapter';
 import { AppConfigService } from './configs/app.config.service';
 import { LoggerService } from './common/logger/service';
 import { AppConfigModule } from './configs/app.config.module';
+import { MyCacheModule } from './providers/cache/cache.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-store';
 
 @Module({
   imports: [

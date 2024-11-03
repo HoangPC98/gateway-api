@@ -16,6 +16,7 @@ export type UserState = {
   isNewCustomer: boolean;
   reasonLockType?: EUserReasonLockType;
   reasonLockDesc?: string;
+  lockAt?: Date;
 };
 
 export type UserAuthJwtPayload = {

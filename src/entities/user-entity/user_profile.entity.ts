@@ -9,10 +9,7 @@ export class UserProfile extends IBaseWithIdEntity {
   private initUserName = DEFAULT_USER_NAME_INIT;
 
   @Column({ type: 'int', nullable: false })
-  uid: string;
-
-  @Column()
-  type: string;
+  uid: number;
 
   @Column({ type: 'varchar', nullable: true })
   first_nane: string;
@@ -26,7 +23,7 @@ export class UserProfile extends IBaseWithIdEntity {
   @Column({ type: 'varchar', nullable: true })
   fullnane: string;
 
-  @Column({ type: 'smallint', enum: EUserGender })
+  @Column({ type: 'smallint', enum: EUserGender, default: EUserGender.MALE })
   gender: EUserGender;
 
   @Column({ type: 'varchar', nullable: true })
@@ -44,7 +41,9 @@ export class UserProfile extends IBaseWithIdEntity {
 
   @BeforeInsert()
   setInitUserProfile() {
-    if (this.first_nane) this.first_nane = this.initUserName;
-    if (this.gender) this.gender = EUserGender.OTHER;
+    if (!this.first_nane || !this.last_name || this.middle_name) 
+      this.first_nane = this.initUserName;
+    if (!this.gender) 
+      this.gender = EUserGender.OTHER;
   }
 }

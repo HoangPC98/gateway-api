@@ -44,11 +44,20 @@ export class User extends IBaseWithIdEntity {
   profile: UserProfile;
 
   @BeforeInsert()
-  setInitialUserState() {
+  setInitialUser() {
     this.state = {
       isLock: false,
       isTempLock: false,
       isNewCustomer: true,
     };
+    this.active = 1;
+    if (this.usr.includes('@')) {
+      this.email = this.usr;
+      this.usr_type = UsrType.EMAIL;
+    }
+    else {
+      this.phone_number = this.usr;
+      this.usr_type = UsrType.PHONE;
+    }
   }
 }

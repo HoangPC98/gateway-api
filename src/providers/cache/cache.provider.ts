@@ -6,8 +6,7 @@ import { AppConfigService } from 'src/configs/app.config.service';
 @Injectable()
 export class CacheProvider {
   constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private readonly appConfigService: AppConfigService,
+    @Inject(CACHE_MANAGER) readonly cacheManager: Cache,
   ) {}
 
   private readonly TTL_DEFAULT = 60 * 60;
@@ -16,6 +15,9 @@ export class CacheProvider {
 
   async get(key: string): Promise<unknown> {
     const value = await this.cacheManager.get(key);
+    // console.log('thisValue...', value)
+    const all = await this.cacheManager.store.keys();
+    // console.log('allKey...', all)
     return value;
   }
 
@@ -25,7 +27,7 @@ export class CacheProvider {
       await this.del(key);
     }
     try {
-      await this.cacheManager.set(key, value, ttl);
+      await this.cacheManager.set(key, value, 3600000);
     } catch (error) {
       this.throwException(`Cache ${this.set.name} error: ${key} ${value}`);
     }
