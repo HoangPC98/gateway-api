@@ -18,9 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:generate": "npx ts-node ./node_modules/.bin/typeorm migration:generate -d src/configs/datasource.config.ts",
-    "migration:run": "npm run build npx ts-node ./node_modules/.bin/typeorm migration:run -d src/configs/datasource.config.ts",
-    "migration:revert": "npx ts-node ./node_modules/.bin/typeorm migration:revert -d src/configs/datasource.config.ts",
+    "migration:generate": "npx ts-node ./node_modules/.bin/typeorm migration:generate -d src/database/datasource.config.ts",
+    "migration:run": "ts-node ./node_modules/.bin/typeorm migration:run -d src/database/datasource.config.ts",
+    "migration:revert": "npx ts-node ./node_modules/.bin/typeorm migration:revert -d src/database/datasource.config.ts",
     "format:check": "prettier --check ./src",
     "format:fix": "prettier --write ./src",
     "format:fixall": "npm run lint:fix && npm run format:fix"

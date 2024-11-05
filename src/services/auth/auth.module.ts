@@ -27,7 +27,7 @@ dotenv.config();
       },
     }),
     MyCacheModule,
-    DatabaseModule
+    DatabaseModule,
   ],
   providers: [AuthService, AuthBaseService, AccessTokenStrategy, UsersRepository, AppConfigService],
   controllers: [AuthController],

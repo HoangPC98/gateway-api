@@ -1,17 +1,20 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { HttpException, HttpStatus, Injectable, Inject } from '@nestjs/common';
 import { Cache } from 'cache-manager';
+import { plainToClass } from 'class-transformer';
 import { AppConfigService } from 'src/configs/app.config.service';
+import { Session } from 'src/entities/user-entity/session.entity';
 
 @Injectable()
 export class CacheProvider {
-  constructor(
-    @Inject(CACHE_MANAGER) readonly cacheManager: Cache,
-  ) {}
+  constructor(@Inject(CACHE_MANAGER) readonly cacheManager: Cache) {}
 
   private readonly TTL_DEFAULT = 60 * 60;
   private readonly TTL_1H = 3600;
   private readonly TTL_REQC = 10 * 60;
+
+  protected getAccessTokenCKey = 'access_token__';
+  protected sessionCkey = 'session_';
 
   async get(key: string): Promise<unknown> {
     const value = await this.cacheManager.get(key);
@@ -27,7 +30,7 @@ export class CacheProvider {
       await this.del(key);
     }
     try {
-      await this.cacheManager.set(key, value, 3600000);
+      await this.cacheManager.set(key, value, this.TTL_DEFAULT);
     } catch (error) {
       this.throwException(`Cache ${this.set.name} error: ${key} ${value}`);
     }
@@ -46,6 +49,15 @@ export class CacheProvider {
     }
   }
 
+  async getSession(sessionId: string, uid: number): Promise<Session> {
+    const ssFromC = await this.get(`${this.getAccessTokenCKey}$-${uid}-${sessionId}`);
+    const session = plainToClass(Session, ssFromC);
+    return session;
+  }
+
+  async storeSession(session: Session) {
+    await this.set(`${this.sessionCkey}${session.id}`, session);
+  }
   // async setLoginSession(pl: SessionCachePL){
 
   // }

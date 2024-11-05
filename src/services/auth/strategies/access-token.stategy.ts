@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import * as dotenv from 'dotenv';
 
@@ -6,9 +6,10 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { AuthService } from '../auth.service';
 import { AppConfigService } from 'src/configs/app.config.service';
-import { IUserAuthPayload } from 'src/common/interfaces/auth.interface';
+import { IClientJwtPayload } from 'src/common/interfaces/auth.interface';
 import { User } from 'src/entities/user-entity/user.entity';
 import { TOKEN_TYPE } from 'src/common/enums/index.enum';
+import { ErrorMessage } from 'src/common/enums/error.enum';
 
 dotenv.config();
 
@@ -25,12 +26,12 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy, TOKEN_TYPE.A
     });
   }
 
-  async validate(payload: IUserAuthPayload): Promise<User> {
-    const { userId, entity, jwtId }: IUserAuthPayload = payload;
-    let user = null;
-    if (user !== null) {
-      user.jwtId = jwtId;
-    }
+  async validate(payload: IClientJwtPayload): Promise<IClientJwtPayload> {
+    const { uid, sid, active }: IClientJwtPayload = payload;
+    let checkSession = await this.authService.validateSession(uid, sid);
+    if(!checkSession)
+      throw new UnauthorizedException(ErrorMessage.SESSION_EXPIRED);
+    const user = { ...payload }
     return user;
   }
 }

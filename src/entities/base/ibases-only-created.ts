@@ -1,9 +1,9 @@
-import { CreateDateColumn } from 'typeorm';
+import { BeforeInsert, CreateDateColumn } from 'typeorm';
 
 export abstract class IBaseOnlyCreateEntity {
   @CreateDateColumn({
     name: 'created_at',
-    default: Date.now(),
+    default: new Date().toISOString(),
     type: 'timestamp',
   })
   createdAt: Date;

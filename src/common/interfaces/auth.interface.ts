@@ -1,8 +1,8 @@
-export interface IUserAuthPayload {
-  authType: 'admin' | 'client';
-  userId: number;
-  jwtId: string;
-  entity: string;
+export interface IClientJwtPayload {
+  uid: number;
+  sid: string;
+  active: number;
+  device_id?: string;
 }
 
 export interface IOtpTracking {
@@ -12,7 +12,14 @@ export interface IOtpTracking {
   usageLimit?: string;
 }
 
-export interface IGetTokenResp {
+export interface IGetTokenRes {
   accessToken: string;
   refreshToken: string;
+}
+
+export interface ILoginResp extends IGetTokenRes {
+  sid: string;
+  userType: 'admin' | 'client';
+  fcm_token?: string;
+  session_expired_in?: string;
 }

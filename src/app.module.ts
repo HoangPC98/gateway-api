@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './services/auth/auth.module';
 import { LoggerModule } from './common/logger/module';
@@ -10,11 +9,15 @@ import { AppConfigModule } from './configs/app.config.module';
 import { MyCacheModule } from './providers/cache/cache.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
+import { UserModule } from './services/customer/user.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ClientJwtAuthGuard } from './services/auth/guards/jwt.auth.guard';
 
 @Module({
   imports: [
     DatabaseModule,
     AuthModule,
+    UserModule,
     AppConfigModule,
     LoggerModule.regisProviders({
       provide: ILoggerService,
@@ -24,7 +27,12 @@ import { redisStore } from 'cache-manager-redis-store';
       inject: [AppConfigService],
     }),
   ],
-  providers: [AppService],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ClientJwtAuthGuard,
+  },
+  ],
   exports: [LoggerModule],
 })
 export class AppModule {}

@@ -41,9 +41,7 @@ export class UserProfile extends IBaseWithIdEntity {
 
   @BeforeInsert()
   setInitUserProfile() {
-    if (!this.first_nane || !this.last_name || this.middle_name) 
-      this.first_nane = this.initUserName;
-    if (!this.gender) 
-      this.gender = EUserGender.OTHER;
+    if (!this.first_nane || !this.last_name || this.middle_name) this.first_nane = this.initUserName;
+    if (!this.gender) this.gender = EUserGender.OTHER;
   }
 }

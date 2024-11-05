@@ -4,19 +4,21 @@ import { User } from '../../entities/user-entity/user.entity';
 import { BaseAbstractRepository } from './base-abstract.repository';
 import { Global, Injectable } from '@nestjs/common';
 import { UserProfile } from 'src/entities/user-entity/user_profile.entity';
+import { Session } from 'src/entities/user-entity/session.entity';
 
 @Injectable()
 export class UsersRepository extends BaseAbstractRepository<User> {
-  public userRp: Repository<User>;
-  public userProfileRp: Repository<UserProfile>;
-
+  readonly account: Repository<User>;
+  readonly profile: Repository<UserProfile>;
+  readonly session: Repository<Session>;
   constructor(
-    @InjectRepository(User) UsersRepository: Repository<User>,
-    @InjectRepository(UserProfile) userProfileRepository: Repository<UserProfile>,
-
+    @InjectRepository(User) usersRepository: Repository<User>,
+    @InjectRepository(UserProfile) profileRepository: Repository<UserProfile>,
+    @InjectRepository(Session) sessionRepository: Repository<Session>,
   ) {
-    super(UsersRepository);
-    this.userRp = UsersRepository;
-    this.userProfileRp = userProfileRepository;
+    super(usersRepository);
+    this.account = usersRepository;
+    this.profile = profileRepository;
+    this.session = sessionRepository;
   }
 }

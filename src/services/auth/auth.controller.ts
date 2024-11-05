@@ -6,7 +6,7 @@ import { Request } from 'express';
 // import { RefreshTokenBodyPayload, RefreshTokenResponse } from '@/modules/auth/dto/auth.dto';
 import { AuthService } from './auth.service';
 import { LoginByUsrPwdReq, SignUpByUsrReq, SignUpReq } from './dto/login.dto';
-import { Public, UserLogged } from 'src/common/decorators/auth.decorator';
+import { DeviceIdLogged, Public, UserLogged } from 'src/common/decorators/auth.decorator';
 import { UserAuthJwtDto } from './dto/token.dto';
 import { ICheckPhoneOrEmailReq } from './dto/validate.auth.dto';
 
@@ -66,8 +66,11 @@ export class AuthController {
     description: 'Username and password',
     type: LoginByUsrPwdReq,
   })
-  async login(@Body() { usr, password }: LoginByUsrPwdReq): Promise<any> {
-    return this.authService.loginByUsr(usr, password);
+  async login(
+    @Body() { usr, password }: LoginByUsrPwdReq,
+    @DeviceIdLogged() deviceId: string
+  ): Promise<any> {
+    return this.authService.loginByUsr(usr, password, deviceId);
   }
 
   @Post('logout')

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Inject } from '@nestjs/common';
+import { ForbiddenException, Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtSignOptions } from '@nestjs/jwt/dist/interfaces';
 import * as bcrypt from 'bcrypt';
@@ -17,9 +17,9 @@ import { CacheProvider } from 'src/providers/cache/cache.provider';
 import { ILoggerService } from 'src/common/logger/adapter';
 import { EUserReasonLockType } from 'src/common/enums/auth.enum';
 import { UserAuthJwtPayload } from 'src/common/types/auth.type';
-import { BOOLEAN_VALUE } from 'src/common/enums/index.enum';
-import { IGetTokenResp } from 'src/common/interfaces/auth.interface';
-
+import { BOOLEAN_VALUE, TOKEN_TYPE } from 'src/common/enums/index.enum';
+import { IClientJwtPayload, IGetTokenRes } from 'src/common/interfaces/auth.interface';
+import { Session } from 'src/entities/user-entity/session.entity';
 
 dotenv.config();
 
@@ -27,8 +27,6 @@ dotenv.config();
 export class AuthBaseService {
   private readonly jwtAccessTokenOption: JwtSignOptions = {};
   private readonly jwtRefreshTokenOption: JwtSignOptions = {};
-  private readonly jwtRefreshTokenHashKey: string;
-  private readonly jwtRefreshTokenLifeTime: number;
   private isLowSecureForTesting: boolean = true;
   private readonly maxWrongPasswordAttempts = 5;
   private readonly tempLockDuration = 30 * 60 * 1000;
@@ -42,12 +40,11 @@ export class AuthBaseService {
   ) {
     this.jwtAccessTokenOption = this.appConfigService.accessTokenOption;
     this.jwtRefreshTokenOption = this.appConfigService.refreshTokenOption;
-    this.jwtRefreshTokenLifeTime = +this.jwtRefreshTokenOption.expiresIn;
     this.isLowSecureForTesting =
       process.env.LOW_SECURE_FOR_TESTING && process.env.LOW_SECURE_FOR_TESTING.toString() == 'true' ? true : false;
   }
 
-  public async handleLoginCredit(user: User, password: string) {
+  public async handleLoginCredit(user: User, password: string): Promise<void> {
     const passwordMatch = await bcrypt.compare(password, user.password);
     const isTempLocked = user.state?.isTempLock == true || false;
     const isLocked = user.state?.isLock == true || false;
@@ -69,24 +66,22 @@ export class AuthBaseService {
       if (remainingCount <= 0) {
         if (isTempLocked) {
           reasonLock = EUserReasonLockType.WRONG_PASSWORD_TO_MUCH;
-          await this.userRepository.userRp.update(user.id, {
+          await this.userRepository.account.update(user.id, {
             state: {
-
               reasonLockType: EUserReasonLockType.WRONG_PASSWORD_TO_MUCH,
             },
           });
           throw new ForbiddenException(reasonLock);
-        }
-        else {
+        } else {
           reasonLock = ErrorMessage.USER_IS_TEMP_LOCK;
           await this.cacheProvider.del(ckey);
-          await this.userRepository.userRp.update(user.id, {
+          await this.userRepository.account.update(user.id, {
             state: {
               isTempLock: true,
               lockAt: new Date(),
               reasonLockType: EUserReasonLockType.WRONG_PASSWORD_TO_MUCH,
-              reasonLockDesc: reasonLock
-            }
+              reasonLockDesc: reasonLock,
+            },
           });
           throw new ForbiddenException(reasonLock);
         }
@@ -97,11 +92,35 @@ export class AuthBaseService {
     }
   }
 
-  async getClientTokens(user: User): Promise<IGetTokenResp> {
-    const accessTokenPayload: UserAuthJwtPayload = {
+  async validateSession(uid: number, sid: string, token?: string): Promise<boolean> {
+    const sessionFromC = await this.cacheProvider.getSession(sid, uid);
+    if (!sessionFromC || sessionFromC?.expried_at) {
+      return false;
+    }
+    return true;
+  }
+
+  generateNewSid() {
+    return `sid:${Date.now()}`;
+  }
+
+  async createNewSession(uid: number, accessToken: string, sid: string, deviceId?: string): Promise<Session> {
+    const newSession = this.userRepository.session.create({
+      id: sid,
+      uid: uid,
+      access_token: accessToken,
+      device_id: deviceId || null
+    });
+    await this.userRepository.session.save(newSession);
+    await this.cacheProvider.storeSession(newSession);
+    return newSession;
+  }
+
+  async getClientTokens(user: User, sid: string): Promise<IGetTokenRes> {
+    const accessTokenPayload: IClientJwtPayload = {
       uid: user.id,
       active: user.active,
-      state: user.state,
+      sid: sid
     };
 
     const refreshTokenPayload: UserAuthJwtPayload = {
@@ -154,51 +173,5 @@ export class AuthBaseService {
   //         accessToken: token,
   //         refreshToken,
   //     };
-  // }
-
-  // async validateToken(
-  //     entityId: number,
-  //     jwtId: string,
-  //     deviceId: string,
-  //     tokenType: TOKEN_TYPE = TOKEN_TYPE.ACCESS_TOKEN,
-  // ): Promise<CustomerDetailDto> {
-  //     const customer: Customer = await this.customerRepository.findByIdAndWithDeviceAndSecuritySetting(entityId);
-  //     if (customer === null) {
-  //         throw new UnauthorizedException();
-  //     }
-  //     const currentDeviceId = customer?.device?.deviceId;
-  //     if (currentDeviceId === null) {
-  //         return null;
-  //     }
-  //     if (currentDeviceId !== deviceId && tokenType === TOKEN_TYPE.ACCESS_TOKEN && !this.isLowSecureForTesting) {
-  //         throw AuthException.loginNewDevice();
-  //     }
-  //     customer.totalNotification = await this.notificationRepository.countNotification(customer.id);
-  //     const cacheKey =
-  //         tokenType === TOKEN_TYPE.REFRESH_TOKEN
-  //             ? this.cacheProvider.getRefreshTokenCacheKey(customer.id)
-  //             : this.cacheProvider.getAccessTokenCacheKey(customer.id);
-  //     const cacheValue = (await this.cacheProvider.get(cacheKey)) as string;
-  //     if (cacheValue === null || cacheValue === undefined) {
-  //         return null;
-  //     }
-  //     const compareCache = await bcrypt.compare(jwtId, cacheValue);
-  //     if (!compareCache) {
-  //         throw new UnauthorizedException();
-  //     }
-  //     return plainToInstance(CustomerDetailDto, customer);
-  // }
-
-  // async storeSessionToCache(userId: number, jwtId: string): Promise<void> {
-  //     const accessCacheKey = this.cacheProvider.getAccessTokenCacheKey(userId);
-  //     const hashedToken = await this.hashToken(jwtId);
-  //     await this.cacheProvider.set(accessCacheKey, hashedToken, {
-  //         ttl: ms(this.appConfigService.jwtRefreshTokenExpired) / 1000,
-  //     });
-  // }
-
-  // async hashToken(token: string): Promise<string> {
-  //     const salt: string = bcrypt.genSaltSync();
-  //     return bcrypt.hashSync(token, salt);
   // }
 }
