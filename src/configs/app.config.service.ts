@@ -48,8 +48,15 @@ export class AppConfigService extends ConfigService {
 
   get refreshTokenOption(): JwtSignOptions {
     return {
-      secret: this.jwtAccessTokenSecret,
+      secret: this.jwtRefreshTokenSecret,
       expiresIn: this.jwtRefreshTokenExpired,
     };
   }
+
+  get messageServiceConnection(): object {
+    return {
+        host: process.env.MESSAGE_SERVICE_HOST,
+        port: Number(process.env.MESSAGE_SERVICE_PORT),
+    };
+}
 }

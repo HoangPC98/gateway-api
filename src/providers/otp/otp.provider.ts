@@ -4,116 +4,73 @@ import * as dotEnv from 'dotenv';
 import * as otpGenerator from 'otp-generator';
 import { ErrorMessage } from 'src/common/enums/error.enum';
 import { IOtpTracking } from 'src/common/interfaces/auth.interface';
+import { OtpObjValue, PhoneOrEmail } from 'src/common/types/auth.type';
 import { v4 as uuidv4 } from 'uuid';
+import { CacheProvider } from '../cache/cache.provider';
+import { EOtpType } from 'src/common/enums/auth.enum';
 
 dotEnv.config();
 
 @Injectable()
 export class OtpProvider {
   // Thời gian OTP hết hiệu lực
-  private readonly otpExpireTime: number = Number.parseInt(process.env.OTP_EXPIRE_TIME);
-  private readonly maxOtpOnTime: number = Number.parseInt(process.env.OTP_LIMIT_ON_TIME);
-  private readonly otpIsByPass: string = process.env.OTP_BY_PASS;
+  private readonly otpExpireTime = process.env.OTP_EXPIRE_TIME;
+  private readonly otpByPassAll: string = process.env.OTP_BY_PASS_ALL;
   private readonly otpCodeBypassDf: string = process.env.OTP_CODE_BYPASS_DF || null;
+  private readonly otpWrongCountLitmit: number = Number.parseInt(process.env.OTP_WRONG_COUNT_LIMIT);
+
   // Thời gian OTP được lưu trữ lại để kiểm tra
-  private readonly otpLiveTime: number = Number.parseInt(process.env.OTP_STORE_TIME);
 
-  constructor(private cacheProvider: Cache) {}
+  constructor(private cacheProvider: CacheProvider) {}
 
-  public async validate(phoneNumber: string, otp: string, trackingId: string): Promise<boolean> {
-    const otpByPassPhoneNumber = process.env.OTP_BY_PASS_PHONE_NUMBER;
+  public async validate(phoneOrEmail: string, otp: string, trackingId: string): Promise<boolean> {
+    const otpByPassKey = process.env.OTP_BY_PASS_KEY;
 
-    if (this.otpCodeBypassDf != null && otp !== this.otpCodeBypassDf) return false;
-    if (this.otpIsByPass.toString().toLowerCase() === 'true') return true;
-    if (otpByPassPhoneNumber?.includes(phoneNumber)) {
+    if (this.otpCodeBypassDf != null && otp == this.otpCodeBypassDf) 
       return true;
-    }
-    const cachedKey = this.otpCacheKey(phoneNumber);
-    const cacheOtpData: IOtpTracking = await this.cacheProvider.get(cachedKey);
+    if (this.otpByPassAll.toString().toLowerCase() === 'true') return true;
+    if (otpByPassKey?.includes(phoneOrEmail)) 
+      return true;
 
-    const otpLiveTimeCache = this.otpLiveTimeCacheKey(otp);
-    const cachedOtpLiveTime: IOtpTracking = await this.cacheProvider.get(otpLiveTimeCache);
+    const cacheOtp = await this.cacheProvider.getOtp(phoneOrEmail);
 
-    if (!cacheOtpData && cachedOtpLiveTime) {
+    if (!cacheOtp) {
       throw new BadRequestException(ErrorMessage.OTP_EXPIRED);
     }
-    if (!cacheOtpData) {
-      return false;
-    }
-    const cacheOtp = cacheOtpData?.otpCode;
-    const cacheTrackingId = cacheOtpData?.trackingId;
-    if (otp === cacheOtp && trackingId === cacheTrackingId) {
-      const otpLiveTime = this.otpLiveTimeCacheKey(otp);
-      await Promise.all([this.cacheProvider.del(cachedKey), this.cacheProvider.del(otpLiveTime)]);
+
+    if(cacheOtp.wrong_count && cacheOtp.wrong_count >= this.otpWrongCountLitmit)
+      throw new BadRequestException(ErrorMessage.WRONG_OTP_TO_MUCH)
+    
+    if (otp == cacheOtp.value && trackingId == cacheOtp.id) {
+      await this.cacheProvider.removeOtp(cacheOtp.key)
       return true;
     }
-
-    return false;
+    else {
+      cacheOtp.wrong_count = cacheOtp.wrong_count ? cacheOtp.wrong_count += 1 : 1;
+      await this.cacheProvider.storeOtp(cacheOtp)
+      throw new BadRequestException(ErrorMessage.INVALID_OTP_CODE);
+    }
   }
 
   // key = phoneNumber or email
-  public async generateOtpCode(phoneNumber: string, limit: number): Promise<IOtpTracking> {
-    const otpLimitKey = this.otpLimitCacheKey(phoneNumber);
-    let totalOtp: number = Number.parseInt(await this.cacheProvider.get(otpLimitKey)) || 0;
-    if (totalOtp >= limit) {
-      throw new BadRequestException(ErrorMessage.MAX_OTP_ON_TIME);
-    }
-    await this.cacheProvider.set(otpLimitKey, ++totalOtp, this.maxOtpOnTime);
-    return this.generate(phoneNumber);
-  }
-
-  // generateOtp v2
-  public async generateOtpV2(phoneNumber: string, limit: number): Promise<IOtpTracking> {
-    const otpLimitKey = this.otpLimitCacheKey(phoneNumber);
-    let totalOtp: number = Number.parseInt(await this.cacheProvider.get(otpLimitKey)) || 0;
-    if (totalOtp >= limit) {
-      throw new BadRequestException(ErrorMessage.MAX_OTP_ON_TIME);
-    }
-    await this.cacheProvider.set(otpLimitKey, ++totalOtp, this.maxOtpOnTime);
-    return this.generate(phoneNumber);
-  }
-
-  private async generate(key: string): Promise<IOtpTracking> {
-    const otpTracking: IOtpTracking = {
-      trackingId: uuidv4(),
-      otpCode: this.generateOtp(),
-    };
-    await this.saveOtpDataToCache(key, otpTracking);
-    return otpTracking;
-  }
-
-  private async saveOtpDataToCache(phoneNumber: string, otpTracking: IOtpTracking): Promise<void> {
-    const otpKey = this.otpCacheKey(phoneNumber);
-    const otpLiveTime = this.otpLiveTimeCacheKey(otpTracking.otpCode);
-    const cacheOtpData: IOtpTracking = await this.cacheProvider.get(otpKey);
-    if (cacheOtpData) {
-      await this.cacheProvider.del(otpKey);
-    }
-    await Promise.all([
-      this.cacheProvider.set(otpKey, otpTracking, this.otpExpireTime),
-      this.cacheProvider.set(otpLiveTime, otpTracking.trackingId, this.otpLiveTime),
-    ]);
-  }
-
-  private generateOtp(): string {
-    const otp = otpGenerator.generate(6, {
+  public async generateOtpCode(phoneOrEmail: string, type?: EOtpType): Promise<OtpObjValue> {
+    const otpCode = otpGenerator.generate(6, {
       digits: true,
       lowerCaseAlphabets: false,
       upperCaseAlphabets: false,
       specialChars: false,
     });
-    return otp.toString();
+
+    const otpValue: OtpObjValue = {
+      id: uuidv4(),
+      value: otpCode,
+      key: phoneOrEmail,
+      type: type,
+      expried_in: '3m'
+    }
+    await this.cacheProvider.storeOtp(otpValue);
+    const otp = await this.cacheProvider.getOtp(phoneOrEmail);
+    return otp;
   }
 
-  private otpCacheKey(phoneNumber: string): string {
-    return `${phoneNumber}_otp_cache`;
-  }
-
-  private otpLimitCacheKey(key: string): string {
-    return `${key}_total_otp`;
-  }
-
-  private otpLiveTimeCacheKey(otp: string): string {
-    return `${otp}_live_time`;
-  }
 }

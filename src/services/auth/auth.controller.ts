@@ -7,8 +7,9 @@ import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginByUsrPwdReq, SignUpByUsrReq, SignUpReq } from './dto/login.dto';
 import { DeviceIdLogged, Public, UserLogged } from 'src/common/decorators/auth.decorator';
-import { UserAuthJwtDto } from './dto/token.dto';
-import { ICheckPhoneOrEmailReq } from './dto/validate.auth.dto';
+import { GetRefreshTokenReq, GetRefreshTokenResp, UserAuthJwtDto } from './dto/token.dto';
+import { GetOtpReq, ICheckPhoneOrEmailReq } from './dto/validate.auth.dto';
+import { IUserAuth } from 'src/common/interfaces/auth.interface';
 
 @Controller({
   path: 'auth',
@@ -25,7 +26,7 @@ import { ICheckPhoneOrEmailReq } from './dto/validate.auth.dto';
 })
 @ApiTags('Auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @ApiHeaders([
     {
@@ -73,9 +74,18 @@ export class AuthController {
     return this.authService.loginByUsr(usr, password, deviceId);
   }
 
-  @Post('logout')
-  async logout(@UserLogged() user: UserAuthJwtDto): Promise<void> {
+  @Get('logout')
+  async logout(@UserLogged() user: IUserAuth): Promise<void> {
     return this.authService.logout(user);
+  }
+
+
+  @Post('refresh-token')
+  @Public()
+  async refreshToken(
+    @Body() body: GetRefreshTokenReq,
+  ): Promise<GetRefreshTokenResp> {
+    return this.authService.getRefreshToken(body.refreshToken);
   }
 
   @Post('check-phone-or-email')
@@ -84,17 +94,26 @@ export class AuthController {
     return await this.authService.checkPhoneOrEmail(body.usr, body.forSignUp);
   }
 
-  // @Post('refresh-token')
-  // @Public()
-  // @UseGuards(AuthGuard(TOKEN_TYPE.REFRESH_TOKEN))
-  // compareRefreshToken(
-  //     @Body() payload: RefreshTokenBodyPayload,
-  //     @CurrentUser() customer: CustomerDetailDto,
-  //     @CurrentDeviceId() deviceId: string,
-  // ): Promise<RefreshTokenResponse> {
-  //     return this.authService.refreshToken(customer, deviceId);
-  // }
+  @Post('get-otp/no-auth')
+  @Public()
+  async getOtpNoAuth(
+    @Body() body: GetOtpReq
+  ) {
+    return await this.authService.sendOtp(body.usr, body.otpType)
+  }
 
+  @Post('verify-otp/no-auth')
+  @Public()
+  async verifyOtp(
+    @Body() body: any
+  ) {
+    return await this.authService.checkOtp(body.usr, body.value, body.id);
+  }
+
+  @Post('login/oauth/google')
+  @Public()
+  async loginByGoogleOAuth() {
+  }
   // @Post('login-new-device')
   // @Public()
   // @ApiBody({
@@ -164,11 +183,5 @@ export class AuthController {
   // @Public()
   // verifyIdentity(@Body() dto: VerifyIndentityDto): Promise<string> {
   //     return this.customerService.verifyIdentity(dto);
-  // }
-
-  // @Post('verify-bank-link')
-  // @Public()
-  // verifyBankLink(@Body() dto: VerifyPaymentLInkDto): Promise<string> {
-  //     return this.customerService.verifyBankLink(dto);
   // }
 }

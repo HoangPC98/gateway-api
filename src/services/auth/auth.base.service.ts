@@ -15,11 +15,15 @@ import { ErrorMessage } from 'src/common/enums/error.enum';
 import { WRONG_PASSWORD_ATTEMPT_REMAIN_CKEY, WRONG_PASSWORD_COUNT } from 'src/common/constants/cache-key.constant';
 import { CacheProvider } from 'src/providers/cache/cache.provider';
 import { ILoggerService } from 'src/common/logger/adapter';
-import { EUserReasonLockType } from 'src/common/enums/auth.enum';
-import { UserAuthJwtPayload } from 'src/common/types/auth.type';
+import { EOtpType, EUserReasonLockType } from 'src/common/enums/auth.enum';
+import { OtpObjValue, UserAuthJwtPayload } from 'src/common/types/auth.type';
 import { BOOLEAN_VALUE, TOKEN_TYPE } from 'src/common/enums/index.enum';
-import { IClientJwtPayload, IGetTokenRes } from 'src/common/interfaces/auth.interface';
+import { IClientJwtPayload, IGetTokenRes, IUserAuth } from 'src/common/interfaces/auth.interface';
 import { Session } from 'src/entities/user-entity/session.entity';
+import { plainToClass, plainToInstance } from 'class-transformer';
+import { OtpProvider } from 'src/providers/otp/otp.provider';
+import { QueueService,  } from 'src/providers/queue/queue.service';
+import { RoutingKey } from 'src/providers/queue';
 
 dotenv.config();
 
@@ -32,10 +36,12 @@ export class AuthBaseService {
   private readonly tempLockDuration = 30 * 60 * 1000;
 
   constructor(
-    public readonly userRepository: UsersRepository,
-    public readonly jwtService: JwtService,
-    public readonly appConfigService: AppConfigService,
-    public readonly cacheProvider: CacheProvider,
+    readonly userRepository: UsersRepository,
+    readonly jwtService: JwtService,
+    readonly appConfigService: AppConfigService,
+    readonly cacheProvider: CacheProvider,
+    readonly otpProvider: OtpProvider,
+    readonly sendMessageService: QueueService,
     // public readonly logger: ILoggerService,
   ) {
     this.jwtAccessTokenOption = this.appConfigService.accessTokenOption;
@@ -93,7 +99,7 @@ export class AuthBaseService {
   }
 
   async validateSession(uid: number, sid: string, token?: string): Promise<boolean> {
-    const sessionFromC = await this.cacheProvider.getSession(sid, uid);
+    const sessionFromC = await this.getSession(sid);
     if (!sessionFromC || sessionFromC?.expried_at) {
       return false;
     }
@@ -104,11 +110,11 @@ export class AuthBaseService {
     return `sid:${Date.now()}`;
   }
 
-  async createNewSession(uid: number, accessToken: string, sid: string, deviceId?: string): Promise<Session> {
+  async createNewSession(uid: number, sid: string, refreshToken?: string, deviceId?: string): Promise<Session> {
     const newSession = this.userRepository.session.create({
       id: sid,
       uid: uid,
-      access_token: accessToken,
+      refresh_token: refreshToken,
       device_id: deviceId || null
     });
     await this.userRepository.session.save(newSession);
@@ -116,17 +122,29 @@ export class AuthBaseService {
     return newSession;
   }
 
-  async getClientTokens(user: User, sid: string): Promise<IGetTokenRes> {
+  async expriedSession(sid: string): Promise<void> {
+    await this.userRepository.session.delete({id: sid});
+  }
+
+  async getSession(sid: string): Promise<Session> {
+    let session = await this.cacheProvider.getSession(sid);
+    if (!session)
+      session = await this.userRepository.session.findOneBy({ id: sid })
+    return session;
+  }
+
+  async getClientTokens(user: User | IUserAuth | any, sid: string): Promise<IGetTokenRes> {
+   
     const accessTokenPayload: IClientJwtPayload = {
-      uid: user.id,
+      uid: user.sid || user.id,
       active: user.active,
       sid: sid
     };
 
     const refreshTokenPayload: UserAuthJwtPayload = {
-      uid: user.id,
+      uid: user.id || user.id,
       active: user.active,
-      state: user.state,
+      sid: sid,
       lastLoginAt: null,
     };
 
@@ -140,38 +158,18 @@ export class AuthBaseService {
     return bcrypt.hashSync(plainPassword, salt);
   }
 
-  // async generateClientRefreshToken(payload: RefreshTokenPayload): Promise<string> {
-  //     const token = this.jwtService.sign(payload, this.jwtRefreshTokenOption);
-  //     await this.cacheService.setLoginSession({
-  //         uid: payload
-  //     })
-  //     return token;
-  // }
+  async sendOtpByEmail(email: string, type: EOtpType) {
 
-  // async refreshToken(customer: CustomerDetailDto, currentDeviceId: string): Promise<RefreshTokenResponse> {
-  //     const cacheKey = this.cacheProvider.getRefreshTokenCacheKey(customer.id);
-  //     const tokenHashed = await this.cacheProvider.get(cacheKey);
-  //     if (tokenHashed === null) {
-  //         throw new UnauthorizedException();
-  //     }
-  //     if (typeof tokenHashed === 'string') {
-  //         const verified = await bcrypt.compare(customer.jwtId, tokenHashed);
-  //         if (!verified) {
-  //             throw new UnauthorizedException();
-  //         }
-  //     }
-  //     const accessTokenId = uuidv4();
-  //     const payload = {
-  //         userId: customer.id,
-  //         entity: EntityType.CUSTOMER,
-  //         jwtId: accessTokenId,
-  //         deviceId: currentDeviceId,
-  //     };
-  //     const token = await this.generateClientAccessToken(payload);
-  //     const refreshToken = await this.generateClientRefreshToken(payload);
-  //     return {
-  //         accessToken: token,
-  //         refreshToken,
-  //     };
-  // }
+  }
+
+  async sendOtpBySms(phoneNumber: string, type: EOtpType): Promise<OtpObjValue> {
+    const otpSend = await this.otpProvider.generateOtpCode(phoneNumber, type);
+    await this.sendMessageService.publishMsg(RoutingKey.SEND_OTP_SMS, otpSend)
+    return {
+      id: otpSend.id,
+      expried_in: otpSend.expried_in,
+      value: otpSend.value
+    }
+  }
+
 }

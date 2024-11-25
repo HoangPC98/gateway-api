@@ -21,9 +21,21 @@ export type UserState = {
 
 export type UserAuthJwtPayload = {
   uid: number | string;
+  sid: string;
   active: EUserActive;
-  state: UserState;
+  state?: UserState;
   lastLoginAt?: string | Date;
   email?: string;
   phone?: string;
 };
+
+export type PhoneOrEmail = 'phone' | 'email';
+
+export type OtpObjValue = {
+  id: string;
+  value?: string;
+  key?: string;
+  type?: string;
+  wrong_count?: number;
+  expried_in?: string;
+}

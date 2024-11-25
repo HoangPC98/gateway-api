@@ -7,14 +7,7 @@ import { UserProfile } from 'src/entities/user-entity/user_profile.entity';
 import { Session } from 'src/entities/user-entity/session.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forRoot(customerDatabaseConfig), 
-    TypeOrmModule.forFeature([
-      User, 
-      UserProfile,
-      Session
-    ])
-  ],
+  imports: [TypeOrmModule.forRoot(customerDatabaseConfig), TypeOrmModule.forFeature([User, UserProfile, Session])],
   providers: [UsersRepository],
   exports: [TypeOrmModule, UsersRepository],
 })

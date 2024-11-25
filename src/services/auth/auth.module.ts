@@ -15,6 +15,10 @@ import { User } from 'src/entities/user-entity/user.entity';
 import { MyCacheModule } from 'src/providers/cache/cache.module';
 import { UserProfile } from 'src/entities/user-entity/user_profile.entity';
 import { DatabaseModule } from 'src/database/database.module';
+import { QueueModule } from 'src/providers/queue/queue.module';
+import { QueueService } from 'src/providers/queue/queue.service';
+import { MESSSAGE_SERVICE_QUEUE } from 'src/providers/queue';
+import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 
 dotenv.config();
 
@@ -28,9 +32,30 @@ dotenv.config();
     }),
     MyCacheModule,
     DatabaseModule,
+    // QueueModule.subcribe([
+    //   { name: MESSSAGE_SERVICE_QUEUE }
+    // ]),
   ],
-  providers: [AuthService, AuthBaseService, AccessTokenStrategy, UsersRepository, AppConfigService],
+  providers: [
+    AuthService,
+    AuthBaseService,
+    AccessTokenStrategy,
+    UsersRepository,
+    AppConfigService,
+    OtpProvider,
+    QueueService,
+    {
+      provide: MESSSAGE_SERVICE_QUEUE,
+      useFactory: ({ messageServiceConnection }: AppConfigService) => {
+        return ClientProxyFactory.create({
+          transport: Transport.RMQ,
+          options: messageServiceConnection,
+        });
+      },
+      inject: [AppConfigService],
+    },
+  ],
   controllers: [AuthController],
-  exports: [AuthService, AccessTokenStrategy],
+  exports: [AuthService, AccessTokenStrategy,],
 })
-export class AuthModule {}
+export class AuthModule { }

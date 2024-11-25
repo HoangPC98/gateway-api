@@ -11,9 +11,9 @@ export enum ErrorMessage {
   USER_IS_TEMP_LOCK = 'user_is_temp_lock',
 
   OTP_EXPIRED = 'otp_expired',
-  MAX_OTP_ON_TIME = 'max_otp_on_time',
+  WRONG_OTP_TO_MUCH = 'wrong_otp_to_much',
+  INVALID_OTP_CODE = 'invalid_otp_code',
 
   SESSION_EXPIRED = 'session_expired',
-  INVALID_ATOKEN = 'access_token_is_invalid'
-
+  INVALID_ATOKEN = 'access_token_is_invalid',
 }

@@ -1,23 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { JwtSignOptions } from '@nestjs/jwt/dist/interfaces';
-import * as bcrypt from 'bcrypt';
-import { plainToInstance } from 'class-transformer';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as dotenv from 'dotenv';
-
-import * as ms from 'ms';
-import { v4 as uuidv4 } from 'uuid';
-
-import { LoginByUsrPwdReq, SignUpByUsrReq, SignUpReq } from './dto/login.dto';
-import { User } from 'src/entities/user-entity/user.entity';
-import { UsersRepository } from 'src/database/repositories/user.repository';
-import { CacheProvider } from 'src/providers/cache/cache.provider';
-import { ILoggerService } from 'src/common/logger/adapter';
-import { UserAuthJwtDto } from './dto/token.dto';
+import { SignUpReq } from './dto/login.dto';
+import { GetRefreshTokenResp, UserAuthJwtDto } from './dto/token.dto';
 import { AuthBaseService } from './auth.base.service';
-import { IGetTokenRes, ILoginResp } from 'src/common/interfaces/auth.interface';
+import { IGetTokenRes, ILoginResp, IUserAuth } from 'src/common/interfaces/auth.interface';
 import { ErrorMessage } from 'src/common/enums/error.enum';
-import { UserProfile } from 'src/entities/user-entity/user_profile.entity';
+import { AccType, EOtpType, UsrType } from 'src/common/enums/auth.enum';
+import { checkPhoneOrEmail } from 'src/common/utils/auth.util';
+import { OtpObjValue } from 'src/common/types/auth.type';
 
 dotenv.config();
 
@@ -35,21 +25,26 @@ export class AuthService extends AuthBaseService {
     if (!checkSession) {
       const sid = this.generateNewSid();
       tokens = await this.getClientTokens(user, sid);
-      checkSession = await this.createNewSession(user.id, tokens.accessToken, sid, deviceId);
+      checkSession = await this.createNewSession(user.id, sid, tokens.refreshToken, deviceId);
     }
-    else{
+    else {
       tokens = await this.getClientTokens(user, checkSession.id)
     }
 
     return {
       ...tokens,
       sid: checkSession.id,
-      userType: 'client'
+      accType: AccType.CLIENT
     };
   }
 
   async signUpByUsr(dto: SignUpReq) {
-    // const user = await this.userRepository.findOneBy({ usr: dto.phoneOrEmail });
+    const { phoneOrEmail, otpCode, password, otpId } = dto;
+    const user = await this.userRepository.findOneBy({ usr: dto.phoneOrEmail });
+    if(user)
+      throw new BadRequestException(ErrorMessage.USR_IS_EXISTED);
+    await this.otpProvider.validate(phoneOrEmail, otpCode, otpId);
+
     await this.checkPhoneOrEmail(dto.phoneOrEmail, 1);
     let newUser = this.userRepository.account.create({
       usr: dto.phoneOrEmail,
@@ -64,8 +59,22 @@ export class AuthService extends AuthBaseService {
     await this.userRepository.profile.save(newProfile);
     return;
   }
-  s;
-  async logout(user: UserAuthJwtDto) { }
+
+  async getRefreshToken(refreshToken: string): Promise<GetRefreshTokenResp> {
+    try {
+      const userValidated = await this.jwtService.verify(refreshToken, {
+        secret: this.appConfigService.jwtRefreshTokenSecret
+      })
+      const tokens = await this.getClientTokens(userValidated, userValidated.sid);
+      return tokens;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid Token');
+    }
+  }
+
+  async logout(user: IUserAuth) {
+    await this.expriedSession(user.sid);
+  }
 
   async checkPhoneOrEmail(usr: string, forSignUp: any): Promise<any> {
     const userByUsr = await this.userRepository.findOneBy({ usr });
@@ -77,5 +86,22 @@ export class AuthService extends AuthBaseService {
       isLock: false,
       loginNewDevice: false,
     };
+  }
+
+  async sendOtp(usr: string, type: EOtpType) {
+    const userType = checkPhoneOrEmail(usr);
+    let otpSend: OtpObjValue;
+    if (userType == UsrType.EMAIL) {
+      return await this.sendOtpByEmail(usr, type);
+    }
+    else {
+      otpSend = await this.sendOtpBySms(usr, type);
+      return otpSend;
+    }
+  }
+
+  async checkOtp(phoneOrEmail: string, value: string, id: string) {
+    const validate = await this.otpProvider.validate(phoneOrEmail, value, id);
+    return validate;
   }
 }

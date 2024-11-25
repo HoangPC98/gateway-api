@@ -2,6 +2,9 @@ export interface IClientJwtPayload {
   uid: number;
   sid: string;
   active: number;
+}
+
+export interface IUserAuth extends IClientJwtPayload {
   device_id?: string;
 }
 
@@ -19,7 +22,7 @@ export interface IGetTokenRes {
 
 export interface ILoginResp extends IGetTokenRes {
   sid: string;
-  userType: 'admin' | 'client';
+  accType: 'admin' | 'client';
   fcm_token?: string;
   session_expired_in?: string;
 }

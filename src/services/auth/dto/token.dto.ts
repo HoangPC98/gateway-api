@@ -1,13 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
 
-export class GetRefreshTokenRequest {
+export class GetRefreshTokenReq {
   @IsNotEmpty()
   @ApiProperty()
   refreshToken: string;
 }
 
-export class GetRefreshTokenResponse {
+export class GetRefreshTokenResp {
   accessToken: string;
   refreshToken: string;
 }

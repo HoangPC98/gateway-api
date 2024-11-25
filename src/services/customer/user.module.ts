@@ -5,10 +5,7 @@ import { DatabaseModule } from 'src/database/database.module';
 import { MyCacheModule } from 'src/providers/cache/cache.module';
 
 @Module({
-  imports: [
-    DatabaseModule,
-    MyCacheModule,
-  ],
+  imports: [DatabaseModule, MyCacheModule],
   controllers: [UserController],
   providers: [UserService],
 })

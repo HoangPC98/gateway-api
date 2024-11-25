@@ -12,6 +12,9 @@ import { redisStore } from 'cache-manager-redis-store';
 import { UserModule } from './services/customer/user.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ClientJwtAuthGuard } from './services/auth/guards/jwt.auth.guard';
+import { QueueModule } from './providers/queue/queue.module';
+import { MESSSAGE_SERVICE_QUEUE } from './providers/queue';
+import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -26,13 +29,29 @@ import { ClientJwtAuthGuard } from './services/auth/guards/jwt.auth.guard';
       },
       inject: [AppConfigService],
     }),
+    // QueueModule.subcribe([
+    //   { name: MESSSAGE_SERVICE_QUEUE }
+    // ]),
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ClientJwtAuthGuard,
-  },
+    },
+    // {
+    //   provide: MESSSAGE_SERVICE_QUEUE,
+    //   useFactory: ({ messageServiceConnection }: AppConfigService) => {
+    //     return ClientProxyFactory.create({
+    //       transport: Transport.RMQ,
+    //       options: messageServiceConnection,
+    //     });
+    //   },
+    //   inject: [AppConfigService],
+    // },
   ],
-  exports: [LoggerModule],
+  exports: [
+    LoggerModule,
+    // MESSSAGE_SERVICE_QUEUE
+  ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -12,8 +12,8 @@ export class Session extends IBaseOnlyCreateEntity {
   @Column({ type: 'varchar', nullable: false })
   uid: number;
 
-  @Column({ type: 'varchar', nullable: true })
-  access_token: string;
+  // @Column({ type: 'varchar', nullable: true })
+  // access_token: string;
 
   @Column({ type: 'varchar', nullable: true })
   refresh_token: string;
@@ -36,13 +36,15 @@ export class Session extends IBaseOnlyCreateEntity {
   @Column({ type: 'varchar', nullable: true })
   expried_at: Date;
 
+  // @Column({ type: 'varchar', nullable: true })
+  // log_out_at: Date;
+
   @ManyToOne(() => User, (user) => user.id)
   @JoinColumn({ name: 'uid' })
   user: User;
 
   @BeforeInsert()
   bfis() {
-    if (!this.id)
-      this.id = `sid:${Date.now()}`;
+    if (!this.id) this.id = `sid:${Date.now()}`;
   }
 }

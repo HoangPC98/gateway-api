@@ -1,9 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { EOtpType } from 'src/common/enums/auth.enum';
 
 export class ICheckPhoneOrEmailReq {
   @IsNotEmpty()
-  @ApiProperty({})
+  @ApiProperty()
   usr: string;
 
   @IsOptional()
@@ -11,4 +13,16 @@ export class ICheckPhoneOrEmailReq {
 
   @IsOptional()
   forSignUp?: boolean;
+}
+
+export class GetOtpReq {
+  @IsNotEmpty()
+  @ApiProperty()
+  @Transform((s) => s.value.trim())
+  usr: string;
+
+  @IsOptional()
+  @ApiProperty()
+  @IsEnum({ enum: EOtpType })
+  otpType: EOtpType;
 }
