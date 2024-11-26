@@ -1,7 +1,7 @@
 
 version: '3.8'
 services:
-  customer_postgres:
+  postgres_gateway:
     image: postgres
     restart: unless-stopped
     env_file: ../.env
@@ -9,7 +9,7 @@ services:
       - 5432:5432
     volumes:
       - postgres:/var/lib/postgresql
-  redis-customer:
+  redis_gateway:
     image: redis:latest
     restart: always
     command: redis-server --port 6380

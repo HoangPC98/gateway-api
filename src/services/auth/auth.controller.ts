@@ -5,11 +5,12 @@ import { Request } from 'express';
 
 // import { RefreshTokenBodyPayload, RefreshTokenResponse } from '@/modules/auth/dto/auth.dto';
 import { AuthService } from './auth.service';
-import { LoginByUsrPwdReq, SignUpByUsrReq, SignUpReq } from './dto/login.dto';
+import { LoginByGoogleReq, LoginByUsrPwdReq, SignUpByUsrReq, SignUpReq } from './dto/login.dto';
 import { DeviceIdLogged, Public, UserLogged } from 'src/common/decorators/auth.decorator';
 import { GetRefreshTokenReq, GetRefreshTokenResp, UserAuthJwtDto } from './dto/token.dto';
 import { GetOtpReq, ICheckPhoneOrEmailReq } from './dto/validate.auth.dto';
 import { IUserAuth } from 'src/common/interfaces/auth.interface';
+import { GoogleOAuthGuard } from './guards/google-oauth.guard';
 
 @Controller({
   path: 'auth',
@@ -111,8 +112,12 @@ export class AuthController {
   }
 
   @Post('login/oauth/google')
+  @UseGuards(GoogleOAuthGuard)
   @Public()
-  async loginByGoogleOAuth() {
+  async loginByGoogleOAuth(
+    @Body() body: LoginByGoogleReq
+  ) {
+    await this.authService.loginByGoogle(body.email)
   }
   // @Post('login-new-device')
   // @Public()

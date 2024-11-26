@@ -5,7 +5,6 @@ import * as dotenv from 'dotenv';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { OtpProvider } from 'src/providers/otp/otp.provider';
-import { AccessTokenStrategy } from './strategies/access-token.stategy';
 import { UsersRepository } from 'src/database/repositories/user.repository';
 import { AppConfigService } from 'src/configs/app.config.service';
 import { CacheProvider } from 'src/providers/cache/cache.provider';
@@ -19,13 +18,14 @@ import { QueueModule } from 'src/providers/queue/queue.module';
 import { QueueService } from 'src/providers/queue/queue.service';
 import { MESSSAGE_SERVICE_QUEUE } from 'src/providers/queue';
 import { ClientProxyFactory, Transport } from '@nestjs/microservices';
+import { AccessTokenStrategy } from './strategies/access-token.strategy';
 
 dotenv.config();
 
 @Module({
   imports: [
     JwtModule.register({
-      secret: `${process.env.JWT_CLIENT_SECRET_KEY}`,
+      secret: `${process.env.JWT_CLIENT_SECRET}`,
       signOptions: {
         expiresIn: `${process.env.JWT_CLIENT_TOKEN_EXPIRED}`,
       },

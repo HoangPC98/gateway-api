@@ -16,14 +16,6 @@ export const customerDatabaseConfig: PostgresConnectionOptions = {
   logging: process.env.DATABASE_LOGGING ? true : false,
   // migrationsRun: true,
   migrations: ['dist/database/migrations/*{.ts,.js}'],
-  // cache: {
-  //   type: 'redis',
-  //   options: {
-  //     host: process.env.REDIS_HOST,
-  //     port: Number(process.env.REDIS_PORT),
-  //     password: process.env.REDIS_PASSWORD,
-  //   },
-  // },
 };
 
 export default new DataSource({

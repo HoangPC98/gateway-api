@@ -3,7 +3,7 @@ import { HttpLogger } from 'pino-http';
 import { ErrorType, MessageType } from './type';
 import { Global, Inject, Injectable } from '@nestjs/common';
 
-// @Injectable()
+@Injectable()
 export abstract class ILoggerService<T extends HttpLogger = HttpLogger> {
   abstract pino: T;
   abstract setApplication(app: string): void;

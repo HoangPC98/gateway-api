@@ -39,3 +39,10 @@ export type OtpObjValue = {
   wrong_count?: number;
   expried_in?: string;
 }
+
+export type GoogleOAuthCredential = {
+  clientID: string;
+  clientSecret: string;
+  callbackURL: string;
+  scope: string[];
+}

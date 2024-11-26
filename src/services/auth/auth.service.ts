@@ -38,6 +38,10 @@ export class AuthService extends AuthBaseService {
     };
   }
 
+  async loginByGoogle(email: string){
+    
+  }
+
   async signUpByUsr(dto: SignUpReq) {
     const { phoneOrEmail, otpCode, password, otpId } = dto;
     const user = await this.userRepository.findOneBy({ usr: dto.phoneOrEmail });

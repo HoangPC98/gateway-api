@@ -2,6 +2,7 @@ import { Global, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtSignOptions } from '@nestjs/jwt';
 import * as dotenv from 'dotenv';
+import { GoogleOAuthCredential } from 'src/common/types/auth.type';
 
 dotenv.config();
 
@@ -24,19 +25,19 @@ export class AppConfigService extends ConfigService {
   }
 
   get jwtAccessTokenSecret(): string {
-    return process.env.JWT_ATOKEN_SECRET;
+    return process.env.JWT_CLIENT_SECRET;
   }
 
   get jwtAccessTokenExpired(): string {
-    return process.env.JWT_ATOKEN_EXPIRED_IN;
+    return process.env.JWT_CLIENT_TOKEN_EXPIRED;
   }
 
   get jwtRefreshTokenSecret(): string {
-    return process.env.JWT_RTOKEN_SECRET;
+    return process.env.JWT_CLIENT_REFRESH_TOKEN_SECRET;
   }
 
   get jwtRefreshTokenExpired(): string {
-    return process.env.JWT_RTOKEN_EXPIRED_IN;
+    return process.env.JWT_CLIENT_REFRESH_TOKEN_EXPIRED;
   }
 
   get accessTokenOption(): JwtSignOptions {
@@ -59,4 +60,12 @@ export class AppConfigService extends ConfigService {
         port: Number(process.env.MESSAGE_SERVICE_PORT),
     };
 }
+  get googleOAuth(): GoogleOAuthCredential {
+    return {
+      clientID: process.env.GOOGLE_OAUTH_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: process.env.GOOGLE_OAUTH_CALLBACK_URL,
+      scope: ['profile', 'email']
+    }
+  }
 }

@@ -5,15 +5,21 @@ import { EUserType } from 'src/common/enums/user.enum';
 
 export class LoginByUsrPwdReq {
   @IsNotEmpty()
-  @ApiProperty({ default: '0123456789' })
+  @ApiProperty()
   @Transform((s) => s.value.trim())
   usr: string;
 
   @IsNotEmpty()
-  @ApiProperty({ default: '123456' })
+  @ApiProperty()
   password: string;
 }
 
+export class LoginByGoogleReq {
+  @IsNotEmpty()
+  @ApiProperty()
+  @Transform((s) => s.value.trim())
+  email: string;
+}
 export class SignUpReq {
   @IsNotEmpty()
   @ApiProperty({
