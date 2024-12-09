@@ -19,6 +19,7 @@ import { QueueService } from 'src/providers/queue/queue.service';
 import { MESSSAGE_SERVICE_QUEUE } from 'src/providers/queue';
 import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { AccessTokenStrategy } from './strategies/access-token.strategy';
+import { QueueMessageService } from 'src/providers/queue/queue.message.service';
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ dotenv.config();
     AppConfigService,
     OtpProvider,
     QueueService,
+    QueueMessageService,
     {
       provide: MESSSAGE_SERVICE_QUEUE,
       useFactory: ({ messageServiceConnection }: AppConfigService) => {

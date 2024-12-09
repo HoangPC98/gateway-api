@@ -22,8 +22,11 @@ import { IClientJwtPayload, IGetTokenRes, IUserAuth } from 'src/common/interface
 import { Session } from 'src/entities/user-entity/session.entity';
 import { plainToClass, plainToInstance } from 'class-transformer';
 import { OtpProvider } from 'src/providers/otp/otp.provider';
-import { QueueService } from 'src/providers/queue/queue.service';
-import { RoutingKey } from 'src/providers/queue';
+import { QueueService, } from 'src/providers/queue/queue.service';
+import { MESSSAGE_SERVICE_QUEUE, QUEUE_PUSH_NOTIF, QUEUE_SEND_SMS, rabbitmqUri, RoutingKey } from 'src/providers/queue';
+import { Channel, Connection } from "amqplib";
+import amqp, { ChannelWrapper } from 'amqp-connection-manager';
+import { QueueMessageService } from 'src/providers/queue/queue.message.service';
 
 dotenv.config();
 
@@ -34,7 +37,9 @@ export class AuthBaseService {
   private isLowSecureForTesting: boolean = true;
   private readonly maxWrongPasswordAttempts = 5;
   private readonly tempLockDuration = 30 * 60 * 1000;
-
+  public channel!: Channel;
+  public connection!: Connection;
+  public channelWrapper: ChannelWrapper;
   constructor(
     readonly userRepository: UsersRepository,
     readonly jwtService: JwtService,
@@ -43,11 +48,23 @@ export class AuthBaseService {
     readonly otpProvider: OtpProvider,
     readonly sendMessageService: QueueService,
     // public readonly logger: ILoggerService,
+    readonly messageQueueService: QueueMessageService
+
   ) {
     this.jwtAccessTokenOption = this.appConfigService.accessTokenOption;
     this.jwtRefreshTokenOption = this.appConfigService.refreshTokenOption;
     this.isLowSecureForTesting =
       process.env.LOW_SECURE_FOR_TESTING && process.env.LOW_SECURE_FOR_TESTING.toString() == 'true' ? true : false;
+    this.initConn();
+  }
+
+  async initConn() {
+    const connection = amqp.connect(rabbitmqUri());
+    this.channelWrapper = connection.createChannel({
+      setup: (channel: Channel) => {
+        return channel.assertQueue(MESSSAGE_SERVICE_QUEUE, { durable: true });
+      },
+    });
   }
 
   public async handleLoginCredit(user: User, password: string): Promise<void> {
@@ -160,7 +177,9 @@ export class AuthBaseService {
 
   async sendOtpBySms(phoneNumber: string, type: EOtpType): Promise<OtpObjValue> {
     const otpSend = await this.otpProvider.generateOtpCode(phoneNumber, type);
-    await this.sendMessageService.emitMsg(RoutingKey.SEND_OTP_SMS, otpSend);
+    this.messageQueueService.publishMsgDirect(QUEUE_PUSH_NOTIF, otpSend)
+    this.messageQueueService.publishMsgToQueue(QUEUE_SEND_SMS, otpSend)
+
     return {
       id: otpSend.id,
       expried_in: otpSend.expried_in,

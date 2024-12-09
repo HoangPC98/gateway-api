@@ -25,19 +25,19 @@ export class AppConfigService extends ConfigService {
   }
 
   get jwtAccessTokenSecret(): string {
-    return process.env.JWT_CLIENT_SECRET;
+    return process.env.JWT_ATOKEN_SECRET;
   }
 
   get jwtAccessTokenExpired(): string {
-    return process.env.JWT_CLIENT_TOKEN_EXPIRED;
+    return process.env.JWT_ATOKEN_EXPIRED_IN;
   }
 
   get jwtRefreshTokenSecret(): string {
-    return process.env.JWT_CLIENT_REFRESH_TOKEN_SECRET;
+    return process.env.JWT_RTOKEN_SECRET;
   }
 
   get jwtRefreshTokenExpired(): string {
-    return process.env.JWT_CLIENT_REFRESH_TOKEN_EXPIRED;
+    return process.env.JWT_RTOKEN_EXPIRED_IN;
   }
 
   get accessTokenOption(): JwtSignOptions {

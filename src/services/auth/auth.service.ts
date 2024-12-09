@@ -8,11 +8,14 @@ import { ErrorMessage } from 'src/common/enums/error.enum';
 import { AccType, EOtpType, UsrType } from 'src/common/enums/auth.enum';
 import { checkPhoneOrEmail } from 'src/common/utils/auth.util';
 import { OtpObjValue } from 'src/common/types/auth.type';
+import amqp, { Channel, Connection } from "amqplib";
+import { rabbitmqUri } from 'src/providers/queue';
 
 dotenv.config();
 
 @Injectable()
 export class AuthService extends AuthBaseService {
+ 
   async loginByUsr(usr: string, password: string, deviceId?: string): Promise<ILoginResp> {
     const user = await this.userRepository.findOneBy({ usr });
     if (!user) throw new BadRequestException(ErrorMessage.USER_NOT_EXIST);
@@ -96,7 +99,15 @@ export class AuthService extends AuthBaseService {
   async sendOtp(usr: string, type: EOtpType) {
     const userType = checkPhoneOrEmail(usr);
     let otpSend: OtpObjValue;
-    
+    let msg = usr;
+
+    // this.channel.sendToQueue(
+    //   'MESSSAGE_SERVICE_QUEUE',
+    //   Buffer.from(JSON.stringify({ msg })),
+    //   {
+    //     persistent: true  // make sure msg won't be lost even RMQ restart (RMQ will save msg to disk in advanced)
+    //   }
+    // );
     if (userType == UsrType.EMAIL) {
       return await this.sendOtpByEmail(usr, type);
     } else {

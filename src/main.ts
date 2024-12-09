@@ -47,8 +47,8 @@ async function bootstrap() {
       queueOptions: {
         durable: true,
       },
-      noAck: true,
-      prefetchCount: 1,
+      noAck: false,
+      prefetchCount: 1
     },
   } as RmqOptions);
 
