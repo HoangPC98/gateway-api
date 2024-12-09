@@ -22,7 +22,7 @@ export class QueueModule {
           queueOptions: {
             durable: true,
           },
-          noAck: true,
+          noAck: false,
           prefetchCount: 1
         },
       }),
