@@ -56,6 +56,6 @@ dotenv.config();
     },
   ],
   controllers: [AuthController],
-  exports: [AuthService, AccessTokenStrategy,],
+  exports: [AuthService, AccessTokenStrategy],
 })
-export class AuthModule { }
+export class AuthModule {}

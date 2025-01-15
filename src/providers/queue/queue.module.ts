@@ -12,20 +12,23 @@ interface QueueRegisterOptions {
 export class QueueModule {
   static readonly serviceName = MESSSAGE_SERVICE;
   static subcribe(queues: Array<QueueRegisterOptions>): DynamicModule {
-    return ClientsModule.registerAsync(queues.map(queue => ({
-      name: this.serviceName,
-      useFactory: () => ({
-        transport: Transport.RMQ,
-        options: {
-          urls: [rabbitmqUri()],
-          queue: queue.name,
-          queueOptions: {
-            durable: true,
+    return ClientsModule.registerAsync(
+      queues.map((queue) => ({
+        name: this.serviceName,
+        useFactory: () => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [rabbitmqUri()],
+            queue: queue.name,
+            exchange: '123',
+            queueOptions: {
+              durable: true,
+            },
+            noAck: true,
+            prefetchCount: 1,
           },
-          noAck: true,
-          prefetchCount: 1
-        },
-      }),
-    })))
+        }),
+      })),
+    );
   }
 }

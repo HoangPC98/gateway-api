@@ -8,5 +8,6 @@ export class GoogleOAuthGuard extends AuthGuard('google') {
     super({
       accessType: 'offline',
     });
+    console.log('GOOGLE AUTH GUARD');
   }
 }

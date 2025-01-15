@@ -16,15 +16,15 @@ export class AllExceptionFilter implements ExceptionFilter {
     const request = context.getRequest<Request>();
     const requestUser: UserAuthJwtDto = request['user'];
     const exceptionResp = exception.response?.response ? exception.response.response : exception.response;
-    let isMultibankResp = exceptionResp?.err_code && exceptionResp?.err_desc ? true : false;
-    let logExeptionObject = process.env.LOG_EXCEPTION_OBJ == 'true' ? true : false;
-    let exceptionMsg = exceptionResp?.errMsg;
+    const isMultibankResp = exceptionResp?.err_code && exceptionResp?.err_desc ? true : false;
+    const logExeptionObject = process.env.LOG_EXCEPTION_OBJ == 'true' ? true : false;
+    const exceptionMsg = exceptionResp?.errMsg;
 
     console.log('===> EXCEPTION:', logExeptionObject ? exception : '{ EXEPTION_COLAPSED }');
 
-    let respStatus = exception.status ? exception.status : 400;
-    let httpStatus = respStatus;
-    let contextName = exception.name;
+    const respStatus = exception.status ? exception.status : 400;
+    const httpStatus = respStatus;
+    const contextName = exception.name;
     exception.path = request.url;
 
     const result: IResponse = {

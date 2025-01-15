@@ -15,38 +15,39 @@ dotenv.config();
 export class AuthService extends AuthBaseService {
   async loginByUsr(usr: string, password: string, deviceId?: string): Promise<ILoginResp> {
     const user = await this.userRepository.findOneBy({ usr });
-    if (!user)
-      throw new BadRequestException(ErrorMessage.USER_NOT_EXIST);
+    if (!user) throw new BadRequestException(ErrorMessage.USER_NOT_EXIST);
     await this.handleLoginCredit(user, password);
     let tokens: IGetTokenRes;
     let checkSession = await this.userRepository.session.findOne({
-      where: { device_id: deviceId }
-    })
+      where: { device_id: deviceId },
+    });
     if (!checkSession) {
       const sid = this.generateNewSid();
       tokens = await this.getClientTokens(user, sid);
       checkSession = await this.createNewSession(user.id, sid, tokens.refreshToken, deviceId);
-    }
-    else {
-      tokens = await this.getClientTokens(user, checkSession.id)
+    } else {
+      tokens = await this.getClientTokens(user, checkSession.id);
     }
 
     return {
       ...tokens,
       sid: checkSession.id,
-      accType: AccType.CLIENT
+      accType: AccType.CLIENT,
     };
   }
 
-  async loginByGoogle(email: string){
-    
+  async loginByGoogle(email: string) {
+    console.log('loginByGoogle LOGIC...', email);
+  }
+
+  async googleRedirect() {
+    console.log('REDIRECT LOGIC...');
   }
 
   async signUpByUsr(dto: SignUpReq) {
     const { phoneOrEmail, otpCode, password, otpId } = dto;
     const user = await this.userRepository.findOneBy({ usr: dto.phoneOrEmail });
-    if(user)
-      throw new BadRequestException(ErrorMessage.USR_IS_EXISTED);
+    if (user) throw new BadRequestException(ErrorMessage.USR_IS_EXISTED);
     await this.otpProvider.validate(phoneOrEmail, otpCode, otpId);
 
     await this.checkPhoneOrEmail(dto.phoneOrEmail, 1);
@@ -57,7 +58,7 @@ export class AuthService extends AuthBaseService {
 
     newUser = await this.userRepository.account.save(newUser);
 
-    let newProfile = this.userRepository.profile.create({
+    const newProfile = this.userRepository.profile.create({
       uid: newUser.id,
     });
     await this.userRepository.profile.save(newProfile);
@@ -67,8 +68,8 @@ export class AuthService extends AuthBaseService {
   async getRefreshToken(refreshToken: string): Promise<GetRefreshTokenResp> {
     try {
       const userValidated = await this.jwtService.verify(refreshToken, {
-        secret: this.appConfigService.jwtRefreshTokenSecret
-      })
+        secret: this.appConfigService.jwtRefreshTokenSecret,
+      });
       const tokens = await this.getClientTokens(userValidated, userValidated.sid);
       return tokens;
     } catch (error) {
@@ -95,10 +96,10 @@ export class AuthService extends AuthBaseService {
   async sendOtp(usr: string, type: EOtpType) {
     const userType = checkPhoneOrEmail(usr);
     let otpSend: OtpObjValue;
+    
     if (userType == UsrType.EMAIL) {
       return await this.sendOtpByEmail(usr, type);
-    }
-    else {
+    } else {
       otpSend = await this.sendOtpBySms(usr, type);
       return otpSend;
     }

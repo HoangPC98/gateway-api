@@ -3,6 +3,6 @@ import { OtpProvider } from './otp.provider';
 
 @Module({
   providers: [OtpProvider],
-  exports: [OtpProvider]
+  exports: [OtpProvider],
 })
 export class OtpModule {}

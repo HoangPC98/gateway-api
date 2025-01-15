@@ -41,7 +41,7 @@ export class LoggerService implements ILoggerService {
     const prettyStream = pinoPretty({
       ignore: 'pid,hostname,filename',
     });
-    let ignoreErrStack = process.env.IGNORE_LOG_TRACE_STACK === 'true' ? true : false;
+    const ignoreErrStack = process.env.IGNORE_LOG_TRACE_STACK === 'true' ? true : false;
     const logger = pino(
       {
         timestamp: () => `,"time":"${this.getCurrentTimeWithZone()}"`,

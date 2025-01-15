@@ -56,16 +56,16 @@ export class AppConfigService extends ConfigService {
 
   get messageServiceConnection(): object {
     return {
-        host: process.env.MESSAGE_SERVICE_HOST,
-        port: Number(process.env.MESSAGE_SERVICE_PORT),
+      host: process.env.MESSAGE_SERVICE_HOST,
+      port: Number(process.env.MESSAGE_SERVICE_PORT),
     };
-}
+  }
   get googleOAuth(): GoogleOAuthCredential {
     return {
       clientID: process.env.GOOGLE_OAUTH_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: process.env.GOOGLE_OAUTH_CALLBACK_URL,
-      scope: ['profile', 'email']
-    }
+      scope: ['profile', 'email'],
+    };
   }
 }

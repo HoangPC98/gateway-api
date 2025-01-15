@@ -24,8 +24,8 @@ export class GatewayInterceptor<T> implements NestInterceptor<T, IResponse> {
   intercept(executionContext: ExecutionContext, next: CallHandler): Observable<IResponse> {
     const request = executionContext.switchToHttp().getRequest();
 
-    let fnc = `${executionContext.getClass().name}/${executionContext.getHandler().name}`;
-    let context = { fnc };
+    const fnc = `${executionContext.getClass().name}/${executionContext.getHandler().name}`;
+    const context = { fnc };
     if (request.body?.transactionId) context['Transaction'] = request.body?.transactionId;
     if (request?.user?.phoneNumber) context['phoneNumber'] = request.user.phoneNumber;
     if (!request.headers?.traceid) {
@@ -36,8 +36,8 @@ export class GatewayInterceptor<T> implements NestInterceptor<T, IResponse> {
     return next.handle().pipe(
       map((data) => {
         const response = executionContext.switchToHttp().getResponse();
-        let dataResp = data || null;
-        let responseStatusCodeIn: number = 201;
+        const dataResp = data || null;
+        const responseStatusCodeIn: number = 201;
 
         const body = {
           data: typeof dataResp === 'string' ? dataResp : instanceToPlain<T>(dataResp, {}),

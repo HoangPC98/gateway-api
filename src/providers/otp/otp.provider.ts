@@ -26,11 +26,9 @@ export class OtpProvider {
   public async validate(phoneOrEmail: string, otp: string, trackingId: string): Promise<boolean> {
     const otpByPassKey = process.env.OTP_BY_PASS_KEY;
 
-    if (this.otpCodeBypassDf != null && otp == this.otpCodeBypassDf) 
-      return true;
+    if (this.otpCodeBypassDf != null && otp == this.otpCodeBypassDf) return true;
     if (this.otpByPassAll.toString().toLowerCase() === 'true') return true;
-    if (otpByPassKey?.includes(phoneOrEmail)) 
-      return true;
+    if (otpByPassKey?.includes(phoneOrEmail)) return true;
 
     const cacheOtp = await this.cacheProvider.getOtp(phoneOrEmail);
 
@@ -38,16 +36,15 @@ export class OtpProvider {
       throw new BadRequestException(ErrorMessage.OTP_EXPIRED);
     }
 
-    if(cacheOtp.wrong_count && cacheOtp.wrong_count >= this.otpWrongCountLitmit)
-      throw new BadRequestException(ErrorMessage.WRONG_OTP_TO_MUCH)
-    
+    if (cacheOtp.wrong_count && cacheOtp.wrong_count >= this.otpWrongCountLitmit)
+      throw new BadRequestException(ErrorMessage.WRONG_OTP_TO_MUCH);
+
     if (otp == cacheOtp.value && trackingId == cacheOtp.id) {
-      await this.cacheProvider.removeOtp(cacheOtp.key)
+      await this.cacheProvider.removeOtp(cacheOtp.key);
       return true;
-    }
-    else {
-      cacheOtp.wrong_count = cacheOtp.wrong_count ? cacheOtp.wrong_count += 1 : 1;
-      await this.cacheProvider.storeOtp(cacheOtp)
+    } else {
+      cacheOtp.wrong_count = cacheOtp.wrong_count ? (cacheOtp.wrong_count += 1) : 1;
+      await this.cacheProvider.storeOtp(cacheOtp);
       throw new BadRequestException(ErrorMessage.INVALID_OTP_CODE);
     }
   }
@@ -66,11 +63,10 @@ export class OtpProvider {
       value: otpCode,
       key: phoneOrEmail,
       type: type,
-      expried_in: '3m'
-    }
+      expried_in: '3m',
+    };
     await this.cacheProvider.storeOtp(otpValue);
     const otp = await this.cacheProvider.getOtp(phoneOrEmail);
     return otp;
   }
-
 }

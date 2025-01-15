@@ -9,7 +9,7 @@ import { Session } from 'src/entities/user-entity/session.entity';
 
 @Injectable()
 export class CacheProvider {
-  constructor(@Inject(CACHE_MANAGER) readonly cacheManager: Cache) { }
+  constructor(@Inject(CACHE_MANAGER) readonly cacheManager: Cache) {}
 
   private readonly TTL_DEFAULT = 60 * 60 * 1000;
   private readonly TTL_1H = 3600;
@@ -18,7 +18,7 @@ export class CacheProvider {
 
   protected getAccessTokenCKey = 'access_token__';
   protected sessionCkey = 'session_';
-  protected otpKey = 'otp'
+  protected otpKey = 'otp';
 
   async get(key: string): Promise<unknown> {
     const value = await this.cacheManager.get(key);
@@ -63,11 +63,7 @@ export class CacheProvider {
 
   async storeOtp(otp: OtpObjValue): Promise<void> {
     const ttl = otp.expried_in ? mapTimeToSecondFromStrDHM(otp.expried_in) : this.TTL_OTP_DF;
-    await this.set(
-      `${this.otpKey}_${otp.key}`,
-      otp,
-      ttl
-    )
+    await this.set(`${this.otpKey}_${otp.key}`, otp, ttl);
   }
 
   async getOtp(key: string): Promise<OtpObjValue> {

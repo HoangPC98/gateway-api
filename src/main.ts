@@ -9,7 +9,7 @@ import { MESSSAGE_SERVICE_QUEUE, rabbitmqUri } from 'src/providers/queue';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const appName = 'GatewayAPI'
+  const appName = 'GatewayAPI';
   const appPort = +process.env.APP_PORT;
   const options = {
     origin: '*',
@@ -42,18 +42,18 @@ async function bootstrap() {
     transport: Transport.RMQ,
     options: {
       urls: [rabbitmqUri()],
-      queue: MESSSAGE_SERVICE_QUEUE,
+      exchange: '123',
+      queue: 'hoangpc',
       queueOptions: {
         durable: true,
       },
       noAck: true,
-      prefetchCount: 1
+      prefetchCount: 1,
     },
   } as RmqOptions);
 
-  await app.startAllMicroservices()
+  await app.startAllMicroservices();
   console.log(`==> ${appName} is listening for messages on RabbitMQ.`);
-
 
   await app.listen(appPort);
   console.log(`==> ${appName} is start successfully on port: ${appPort}...`);

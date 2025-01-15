@@ -27,7 +27,7 @@ import { GoogleOAuthGuard } from './guards/google-oauth.guard';
 })
 @ApiTags('Auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @ApiHeaders([
     {
@@ -68,10 +68,7 @@ export class AuthController {
     description: 'Username and password',
     type: LoginByUsrPwdReq,
   })
-  async login(
-    @Body() { usr, password }: LoginByUsrPwdReq,
-    @DeviceIdLogged() deviceId: string
-  ): Promise<any> {
+  async login(@Body() { usr, password }: LoginByUsrPwdReq, @DeviceIdLogged() deviceId: string): Promise<any> {
     return this.authService.loginByUsr(usr, password, deviceId);
   }
 
@@ -80,12 +77,9 @@ export class AuthController {
     return this.authService.logout(user);
   }
 
-
   @Post('refresh-token')
   @Public()
-  async refreshToken(
-    @Body() body: GetRefreshTokenReq,
-  ): Promise<GetRefreshTokenResp> {
+  async refreshToken(@Body() body: GetRefreshTokenReq): Promise<GetRefreshTokenResp> {
     return this.authService.getRefreshToken(body.refreshToken);
   }
 
@@ -97,27 +91,28 @@ export class AuthController {
 
   @Post('get-otp/no-auth')
   @Public()
-  async getOtpNoAuth(
-    @Body() body: GetOtpReq
-  ) {
-    return await this.authService.sendOtp(body.usr, body.otpType)
+  async getOtpNoAuth(@Body() body: GetOtpReq) {
+    return await this.authService.sendOtp(body.usr, body.otpType);
   }
 
   @Post('verify-otp/no-auth')
   @Public()
-  async verifyOtp(
-    @Body() body: any
-  ) {
+  async verifyOtp(@Body() body: any) {
     return await this.authService.checkOtp(body.usr, body.value, body.id);
   }
 
-  @Post('login/oauth/google')
+  @Post('oauth/google')
   @UseGuards(GoogleOAuthGuard)
   @Public()
-  async loginByGoogleOAuth(
-    @Body() body: LoginByGoogleReq
-  ) {
-    await this.authService.loginByGoogle(body.email)
+  async loginByGoogleOAuth(@Body() body: LoginByGoogleReq) {
+    await this.authService.loginByGoogle(body.email);
+  }
+
+  @Get('oauth/google-redirect')
+  @UseGuards(AuthGuard('google'))
+  @Public()
+  async loginByGoogleRedirect() {
+    await this.authService.googleRedirect();
   }
   // @Post('login-new-device')
   // @Public()

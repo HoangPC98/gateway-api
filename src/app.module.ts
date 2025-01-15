@@ -54,4 +54,4 @@ import { ClientProxyFactory, Transport } from '@nestjs/microservices';
     // MESSSAGE_SERVICE_QUEUE
   ],
 })
-export class AppModule { }
+export class AppModule {}

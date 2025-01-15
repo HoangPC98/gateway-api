@@ -22,7 +22,7 @@ import { IClientJwtPayload, IGetTokenRes, IUserAuth } from 'src/common/interface
 import { Session } from 'src/entities/user-entity/session.entity';
 import { plainToClass, plainToInstance } from 'class-transformer';
 import { OtpProvider } from 'src/providers/otp/otp.provider';
-import { QueueService,  } from 'src/providers/queue/queue.service';
+import { QueueService } from 'src/providers/queue/queue.service';
 import { RoutingKey } from 'src/providers/queue';
 
 dotenv.config();
@@ -115,7 +115,7 @@ export class AuthBaseService {
       id: sid,
       uid: uid,
       refresh_token: refreshToken,
-      device_id: deviceId || null
+      device_id: deviceId || null,
     });
     await this.userRepository.session.save(newSession);
     await this.cacheProvider.storeSession(newSession);
@@ -123,22 +123,20 @@ export class AuthBaseService {
   }
 
   async expriedSession(sid: string): Promise<void> {
-    await this.userRepository.session.delete({id: sid});
+    await this.userRepository.session.delete({ id: sid });
   }
 
   async getSession(sid: string): Promise<Session> {
     let session = await this.cacheProvider.getSession(sid);
-    if (!session)
-      session = await this.userRepository.session.findOneBy({ id: sid })
+    if (!session) session = await this.userRepository.session.findOneBy({ id: sid });
     return session;
   }
 
   async getClientTokens(user: User | IUserAuth | any, sid: string): Promise<IGetTokenRes> {
-   
     const accessTokenPayload: IClientJwtPayload = {
       uid: user.sid || user.id,
       active: user.active,
-      sid: sid
+      sid: sid,
     };
 
     const refreshTokenPayload: UserAuthJwtPayload = {
@@ -158,18 +156,15 @@ export class AuthBaseService {
     return bcrypt.hashSync(plainPassword, salt);
   }
 
-  async sendOtpByEmail(email: string, type: EOtpType) {
-
-  }
+  async sendOtpByEmail(email: string, type: EOtpType) {}
 
   async sendOtpBySms(phoneNumber: string, type: EOtpType): Promise<OtpObjValue> {
     const otpSend = await this.otpProvider.generateOtpCode(phoneNumber, type);
-    await this.sendMessageService.publishMsg(RoutingKey.SEND_OTP_SMS, otpSend)
+    await this.sendMessageService.emitMsg(RoutingKey.SEND_OTP_SMS, otpSend);
     return {
       id: otpSend.id,
       expried_in: otpSend.expried_in,
-      value: otpSend.value
-    }
+      value: otpSend.value,
+    };
   }
-
 }
